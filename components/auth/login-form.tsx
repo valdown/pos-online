@@ -80,7 +80,7 @@ export function LoginForm() {
     >
       <div className="space-y-2">
         <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[var(--coffee-600)]">{usesSupabase ? "Supabase auth" : "Demo akses"}</p>
-        <h2 className="font-display text-5xl leading-none text-[var(--coffee-900)]">Valyons Shop</h2>
+        <h2 className="font-display text-5xl leading-none text-[var(--coffee-900)]">Valyons Sshop</h2>
         <p className="text-sm leading-6 text-[var(--muted)]">
           {usesSupabase
             ? "Masuk memakai email dan password akun Supabase yang kamu buat nanti."
