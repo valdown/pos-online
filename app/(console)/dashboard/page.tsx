@@ -35,23 +35,23 @@ export default async function DashboardPage() {
         ))}
       </section>
 
-      <section className="grid gap-6 2xl:grid-cols-[1.45fr_0.95fr]">
-        <Card className="p-6">
-          <CardHeader>
+      <section className="grid gap-5 2xl:grid-cols-[1.45fr_0.95fr]">
+        <Card className="flex h-full flex-col p-5 sm:p-6">
+          <CardHeader className="space-y-2 pb-4">
             <CardTitle>Grafik Pendapatan</CardTitle>
             <CardDescription>Pergerakan omzet tujuh hari terakhir, dipuncaki traffic akhir pekan.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 space-y-0">
             <RevenueChart data={revenueSeries} />
           </CardContent>
         </Card>
 
-        <Card className="p-6">
-          <CardHeader>
+        <Card className="flex h-full flex-col p-5 sm:p-6">
+          <CardHeader className="space-y-2 pb-4">
             <CardTitle>Menu Terlaris</CardTitle>
             <CardDescription>Kontributor transaksi terbesar untuk kombo minuman dan makanan.</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex-1 space-y-0">
             <PopularItemsChart data={popularItems} />
           </CardContent>
         </Card>

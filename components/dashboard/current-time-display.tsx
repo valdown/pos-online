@@ -28,9 +28,11 @@ function formatParts(date: Date) {
 }
 
 export function CurrentTimeDisplay() {
-  const [now, setNow] = useState(() => new Date());
+  const [now, setNow] = useState<Date | null>(null);
 
   useEffect(() => {
+    setNow(new Date());
+
     const timer = window.setInterval(() => {
       setNow(new Date());
     }, 1000);
@@ -38,24 +40,29 @@ export function CurrentTimeDisplay() {
     return () => window.clearInterval(timer);
   }, []);
 
-  const { time, day, fullDate, zone } = useMemo(() => formatParts(now), [now]);
+  const { time, day, fullDate, zone } = useMemo(() => formatParts(now ?? new Date(0)), [now]);
 
   return (
-    <div className="w-full min-w-0 sm:max-w-fit">
-      <div className="relative overflow-hidden rounded-[var(--radius-soft)] border border-[var(--line)] bg-[linear-gradient(135deg,rgba(255,253,251,0.96),rgba(251,244,236,0.92))] px-4 py-3 shadow-[0_16px_32px_rgba(82,49,29,0.08)] sm:px-5">
-        <div className="pointer-events-none absolute inset-y-0 right-0 w-24 bg-[radial-gradient(circle_at_center,rgba(228,183,133,0.22),rgba(228,183,133,0))]" />
-        <div className="relative flex min-w-0 flex-wrap items-center gap-x-4 gap-y-2 sm:flex-nowrap sm:gap-x-5">
-          <div className="min-w-0 flex-1">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-[var(--coffee-600)]">Waktu Sekarang</p>
-            <div className="mt-1 flex min-w-0 flex-wrap items-end gap-x-3 gap-y-1">
-              <p className="font-display text-3xl leading-none text-[var(--coffee-900)] sm:text-[2.35rem]">{time}</p>
-              <p className="pb-0.5 text-sm font-medium text-[var(--muted)]">{zone}</p>
-            </div>
+    <div className="w-full min-w-0 xl:max-w-fit">
+      <div className="rounded-[calc(var(--radius-soft)-0.1rem)] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.84),rgba(255,248,242,0.8))] px-3 py-2.5 shadow-[0_14px_30px_rgba(82,49,29,0.08),inset_0_1px_0_rgba(255,255,255,0.7)] backdrop-blur-md sm:px-3.5">
+        <div className="flex min-w-0 flex-col gap-1.5">
+          <div className="flex min-w-0 items-center justify-between gap-2">
+            <p className="truncate text-[9px] font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">Waktu Sekarang</p>
+            <span className="inline-flex shrink-0 items-center rounded-full border border-[rgba(198,122,63,0.14)] bg-white/55 px-2 py-0.5 text-[8px] font-semibold uppercase tracking-[0.18em] text-[var(--coffee-700)]">
+              {zone}
+            </span>
           </div>
-          <div className="hidden h-12 w-px shrink-0 bg-[linear-gradient(180deg,rgba(234,220,207,0),rgba(234,220,207,1),rgba(234,220,207,0))] sm:block" />
-          <div className="min-w-0 space-y-1">
-            <p className="text-sm font-semibold capitalize text-[var(--ink)]">{day}</p>
-            <p className="text-sm text-[var(--muted)]">{fullDate}</p>
+
+          <div className="space-y-1">
+              <p className="min-w-[6.5ch] text-[1.2rem] font-medium leading-none tracking-[-0.045em] text-[var(--ink)] tabular-nums sm:text-[1.32rem]">
+                {now ? time : "--.--.--"}
+              </p>
+
+              <div className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] leading-none text-[var(--muted)] sm:text-[11.5px]">
+                <span className="font-medium capitalize text-[var(--ink)]">{now ? day : "Memuat"}</span>
+                <span className="size-1 rounded-full bg-[var(--line)]" aria-hidden="true" />
+                <span>{now ? fullDate : "tanggal lokal"}</span>
+              </div>
           </div>
         </div>
       </div>

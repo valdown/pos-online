@@ -2,6 +2,7 @@ import { BadgeCheck, Package, ReceiptText, Wallet } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import type { DashboardStat } from "@/lib/mock-data";
+import { cn } from "@/lib/utils";
 
 const iconMap = {
   wallet: Wallet,
@@ -10,25 +11,56 @@ const iconMap = {
   package: Package,
 } as const;
 
+function splitStatValue(value: string) {
+  if (!value.startsWith("Rp ")) {
+    return {
+      prefix: null,
+      amount: value,
+    };
+  }
+
+  return {
+    prefix: "Rp",
+    amount: value.slice(3),
+  };
+}
+
 export function KpiCard({ stat }: { stat: DashboardStat }) {
   const Icon = iconMap[stat.icon];
+  const { prefix, amount } = splitStatValue(stat.value);
 
   return (
-    <Card className="metric-card relative overflow-hidden p-5">
-      <div className="absolute right-[-18px] top-[-16px] size-28 rounded-full bg-[radial-gradient(circle,rgba(236,214,189,0.45),rgba(236,214,189,0))]" />
-      <div className="relative space-y-4">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1">
-            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">{stat.title}</p>
-            <p className="text-3xl font-semibold tracking-[-0.04em] text-[var(--ink)]">{stat.value}</p>
+    <Card className="metric-card h-full min-h-[176px] p-5 sm:min-h-[188px] sm:p-6">
+      <div className="flex h-full items-start gap-4">
+        <div className="flex min-w-0 flex-1 flex-col self-stretch">
+          <div className="flex items-center gap-2.5">
+            <span className="size-1.5 rounded-full bg-[var(--coffee-500)]" aria-hidden="true" />
+            <p className="text-[11px] font-semibold uppercase leading-none tracking-[0.28em] text-[var(--coffee-700)]">{stat.title}</p>
           </div>
-          <div className="flex size-12 items-center justify-center rounded-[1.1rem] bg-[rgba(198,122,63,0.14)] text-[var(--coffee-700)]">
-            <Icon className="size-5" />
+
+          <div className="mt-auto flex min-h-[3.75rem] items-end">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-end gap-x-1.5 gap-y-1">
+                {prefix ? (
+                  <span className="pb-0.5 text-xs font-semibold uppercase leading-none tracking-[0.18em] text-[var(--coffee-700)] sm:text-sm">
+                    {prefix}
+                  </span>
+                ) : null}
+                <p
+                  className={cn(
+                    "font-semibold leading-none text-[var(--ink)] tabular-nums",
+                    prefix ? "text-[2rem] tracking-[-0.04em] sm:text-[2.2rem]" : "text-[2.15rem] tracking-[-0.045em] sm:text-[2.35rem]"
+                  )}
+                >
+                  {amount}
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-        <div className="space-y-1">
-          <p className="text-sm font-semibold text-[var(--success)]">{stat.delta}</p>
-          <p className="text-sm text-[var(--muted)]">{stat.description}</p>
+
+        <div className="flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-soft)] border border-[var(--line)] bg-white/72 text-[var(--coffee-700)] shadow-[0_12px_24px_rgba(82,49,29,0.08)]">
+          <Icon className="size-[1.15rem]" strokeWidth={1.8} />
         </div>
       </div>
     </Card>
