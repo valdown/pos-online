@@ -51,9 +51,9 @@ export function AppSidebar({ currentUser }: { currentUser: AppShellUser }) {
   };
 
   return (
-    <aside className="flex w-full max-w-[290px] flex-col gap-6 rounded-[calc(var(--radius-panel)+0.25rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(252,246,240,0.92))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
-      <div className="space-y-4">
-        <div className="flex items-center gap-4 rounded-[var(--radius-soft)] bg-[rgba(255,255,255,0.76)] p-3">
+    <aside className="flex w-full flex-col gap-5 rounded-[calc(var(--radius-panel)+0.25rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(252,246,240,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] md:gap-6 md:p-5 xl:w-[304px] xl:shrink-0 xl:gap-7 xl:p-6">
+      <div className="space-y-5">
+        <div className="flex items-center gap-4 rounded-[var(--radius-soft)] bg-[rgba(255,255,255,0.76)] p-3 md:p-4">
           <div className="flex size-14 items-center justify-center rounded-[1.35rem] bg-[linear-gradient(135deg,var(--coffee-500),var(--coffee-700))] text-white shadow-[0_14px_26px_rgba(122,75,44,0.22)]">
             <Store className="size-6" />
           </div>
@@ -63,13 +63,13 @@ export function AppSidebar({ currentUser }: { currentUser: AppShellUser }) {
           </div>
         </div>
 
-        <div className="rounded-[var(--radius-soft)] bg-[linear-gradient(135deg,rgba(255,250,246,0.92),rgba(244,230,215,0.82))] p-4">
+        <div className="rounded-[var(--radius-soft)] bg-[linear-gradient(135deg,rgba(255,250,246,0.92),rgba(244,230,215,0.82))] p-4 md:p-5">
           <Badge variant="accent" className="w-fit">Kasir Aktif</Badge>
-        <div className="mt-3 flex items-end justify-between gap-3">
-          <div>
-            <p className="text-3xl font-semibold tracking-[-0.04em] text-[var(--ink)]">23.42</p>
-            <p className="text-sm text-[var(--muted)]">{currentUser.modeLabel === "Supabase" ? "Supabase session aktif" : "Counter A - shift sore"}</p>
-          </div>
+          <div className="mt-4 flex items-end justify-between gap-3">
+            <div className="space-y-1.5">
+              <p className="text-3xl font-semibold tracking-[-0.04em] text-[var(--ink)]">23.42</p>
+              <p className="text-sm text-[var(--muted)]">{currentUser.modeLabel === "Supabase" ? "Supabase session aktif" : "Counter A - shift sore"}</p>
+            </div>
             <div className="rounded-full bg-white/70 p-2 text-[var(--coffee-700)]">
               <Sparkles className="size-4" />
             </div>
@@ -77,46 +77,48 @@ export function AppSidebar({ currentUser }: { currentUser: AppShellUser }) {
         </div>
       </div>
 
-      <div className="space-y-3">
-        <p className="px-2 text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">Menu Utama</p>
-        <nav className="space-y-1.5">
-          {links.map(({ href, label, icon: Icon }) => {
-            const active = pathname === href;
+      <div className="space-y-5 md:space-y-6 xl:space-y-7">
+        <div className="space-y-4">
+          <p className="px-3 text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)]">Menu Utama</p>
+          <nav className="space-y-2">
+            {links.map(({ href, label, icon: Icon }) => {
+              const active = pathname === href;
 
-            return (
-              <Link key={href} href={href} className={cn("sidebar-item", active && "sidebar-item-active")}>
-                <Icon className="size-4" />
-                <span>{label}</span>
-              </Link>
-            );
-          })}
-        </nav>
-      </div>
-
-      <div className="mt-auto space-y-4 rounded-[var(--radius-soft)] bg-[rgba(255,255,255,0.72)] p-4">
-        <div className="flex items-center gap-3">
-          <Avatar.Root className="flex size-12 items-center justify-center overflow-hidden rounded-[1rem] bg-[linear-gradient(135deg,var(--coffee-600),var(--coffee-800))] text-sm font-semibold text-white">
-            <Avatar.Fallback delayMs={0}>{currentUser.initials}</Avatar.Fallback>
-          </Avatar.Root>
-          <div>
-            <p className="font-semibold text-[var(--ink)]">{currentUser.name}</p>
-            <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
-              <ShieldCheck className="size-3.5" />
-              {currentUser.role}
-            </div>
-            <p className="mt-1 text-xs text-[var(--muted)]">{currentUser.subtitle}</p>
-          </div>
+              return (
+                <Link key={href} href={href} className={cn("sidebar-item", active && "sidebar-item-active")}>
+                  <Icon className="size-4" />
+                  <span>{label}</span>
+                </Link>
+              );
+            })}
+          </nav>
         </div>
 
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="secondary" type="button">
-            <Sparkles className="size-4" />
-            {currentUser.modeLabel}
-          </Button>
-          <Button variant="outline" type="button" onClick={handleLogout}>
-            <LogOut className="size-4" />
-            Keluar
-          </Button>
+        <div className="space-y-4 rounded-[var(--radius-soft)] bg-[rgba(255,255,255,0.72)] p-4 md:p-5">
+          <div className="flex items-center gap-3">
+            <Avatar.Root className="flex size-12 items-center justify-center overflow-hidden rounded-[1rem] bg-[linear-gradient(135deg,var(--coffee-600),var(--coffee-800))] text-sm font-semibold text-white">
+              <Avatar.Fallback delayMs={0}>{currentUser.initials}</Avatar.Fallback>
+            </Avatar.Root>
+            <div>
+              <p className="font-semibold text-[var(--ink)]">{currentUser.name}</p>
+              <div className="flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">
+                <ShieldCheck className="size-3.5" />
+                {currentUser.role}
+              </div>
+              <p className="mt-1 text-xs text-[var(--muted)]">{currentUser.subtitle}</p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="secondary" type="button">
+              <Sparkles className="size-4" />
+              {currentUser.modeLabel}
+            </Button>
+            <Button variant="outline" type="button" onClick={handleLogout}>
+              <LogOut className="size-4" />
+              Keluar
+            </Button>
+          </div>
         </div>
       </div>
     </aside>

@@ -141,7 +141,7 @@ export function LoginForm() {
       {authError ? <p className="text-sm font-medium text-[var(--coffee-700)]">{authError}</p> : null}
 
       <Button data-testid="login-submit" className="w-full" type="submit" size="lg" disabled={form.formState.isSubmitting}>
-        Masuk ke Sistem
+        Login
       </Button>
     </form>
   );
