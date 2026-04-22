@@ -7,17 +7,57 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { appendCashierInvoice } from "@/lib/cashier-invoice-storage";
 import type { Product, ProductCategory } from "@/lib/mock-data";
 import { cn, formatCurrency } from "@/lib/utils";
 
 type CartItem = Product & { quantity: number };
 type PaymentMethod = "cash" | "debit" | "qris";
 
+type ProductVisual = {
+  imageUrl: string;
+};
+
 const paymentOptions: Array<{ id: PaymentMethod; label: string; icon: typeof Wallet }> = [
   { id: "cash", label: "Tunai", icon: Wallet },
   { id: "debit", label: "Debit", icon: CreditCard },
   { id: "qris", label: "QRIS", icon: ReceiptText },
 ];
+
+const productVisuals: Record<string, ProductVisual> = {
+  "caramel-macchiato": {
+    imageUrl: "https://images.pexels.com/photos/312418/pexels-photo-312418.jpeg?auto=compress&cs=tinysrgb&w=1200",
+  },
+  "flat-white": {
+    imageUrl: "https://images.pexels.com/photos/302899/pexels-photo-302899.jpeg?auto=compress&cs=tinysrgb&w=1200",
+  },
+  "v60-kintamani": {
+    imageUrl: "https://images.pexels.com/photos/894695/pexels-photo-894695.jpeg?auto=compress&cs=tinysrgb&w=1200",
+  },
+  "aren-latte": {
+    imageUrl: "https://images.pexels.com/photos/324028/pexels-photo-324028.jpeg?auto=compress&cs=tinysrgb&w=1200",
+  },
+  "matcha-cloud": {
+    imageUrl: "https://images.pexels.com/photos/5946973/pexels-photo-5946973.jpeg?auto=compress&cs=tinysrgb&w=1200",
+  },
+  "beef-burger-chips": {
+    imageUrl: "https://images.pexels.com/photos/1639557/pexels-photo-1639557.jpeg?auto=compress&cs=tinysrgb&w=1200",
+  },
+  "croissant-almond": {
+    imageUrl: "https://images.pexels.com/photos/2135/food-france-morning-breakfast.jpg?auto=compress&cs=tinysrgb&w=1200",
+  },
+  "spanish-latte": {
+    imageUrl: "https://images.pexels.com/photos/6205770/pexels-photo-6205770.jpeg?auto=compress&cs=tinysrgb&w=1200",
+  },
+};
+
+function getProductVisual(product: Product): ProductVisual {
+  return (
+    productVisuals[product.id] ?? {
+      imageUrl: "https://images.pexels.com/photos/1855214/pexels-photo-1855214.jpeg?auto=compress&cs=tinysrgb&w=1200",
+    }
+  );
+}
 
 export function PosClient({
   products,
@@ -122,7 +162,25 @@ export function PosClient({
         return;
       }
 
-      const payload = (await response.json()) as { mode: "demo" | "supabase" };
+      const payload = (await response.json()) as { mode: "demo" | "supabase"; orderNumber: string; createdAt: string };
+
+      appendCashierInvoice({
+        id: payload.orderNumber,
+        orderNumber: payload.orderNumber,
+        createdAt: payload.createdAt,
+        items: cart.map((item) => ({
+          productId: item.id,
+          productName: item.name,
+          unitPrice: item.price,
+          quantity: item.quantity,
+          lineTotal: item.price * item.quantity,
+        })),
+        subtotal,
+        tax,
+        total,
+        cashierName: payload.mode === "supabase" ? "Kasir Online" : "Kasir Demo",
+        paymentMethod,
+      });
 
       toast.success(`Pembayaran ${paymentMethod.toUpperCase()} berhasil diproses.`, {
         description:
@@ -138,7 +196,7 @@ export function PosClient({
     <div className="grid gap-6 xl:grid-cols-[1.5fr_0.95fr]">
       <div className="space-y-6">
         <Card className="p-5 md:p-6">
-          <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="space-y-4">
             <div className="space-y-2">
               <Badge variant="accent" className="w-fit">Counter aktif</Badge>
               <div>
@@ -167,35 +225,50 @@ export function PosClient({
           </div>
         </Card>
 
-        <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
-          {filteredProducts.map((product) => (
-            <Card key={product.id} data-testid={`product-card-${product.id}`} className="p-5">
-              <div className="space-y-4">
-                <div className="rounded-[1.3rem] bg-[linear-gradient(135deg,rgba(255,248,242,0.92),rgba(239,222,203,0.88))] p-4">
-                  <div className="mb-5 flex items-center justify-between gap-3">
-                    <Badge variant={product.status === "Aktif" ? "success" : "warning"}>{product.status}</Badge>
-                    <span className="text-xs uppercase tracking-[0.22em] text-[var(--muted)]">{product.category}</span>
-                  </div>
-                  <div className="space-y-1">
-                    <p className="font-display text-3xl leading-none text-[var(--coffee-900)]">{product.name}</p>
-                    <p className="text-sm leading-6 text-[var(--muted)]">{product.description}</p>
-                  </div>
-                </div>
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+          {filteredProducts.map((product) => {
+            const visual = getProductVisual(product);
 
-                <div className="flex items-end justify-between gap-4">
-                  <div>
-                    <p className="text-xs uppercase tracking-[0.2em] text-[var(--muted)]">Harga</p>
-                    <p className="text-xl font-semibold text-[var(--ink)]">{formatCurrency(product.price)}</p>
-                    <p className="text-sm text-[var(--muted)]">Stok {product.stock} • Terjual {product.soldToday}</p>
+            return (
+              <Card
+                key={product.id}
+                data-testid={`product-card-${product.id}`}
+                className="group overflow-hidden border-[var(--line)] bg-white p-2.5 shadow-[0_12px_24px_rgba(82,49,29,0.08)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_18px_30px_rgba(82,49,29,0.12)]"
+              >
+                <div className="space-y-2">
+                  <div className="relative">
+                    <div className="aspect-[4/3] overflow-hidden rounded-[calc(var(--radius-soft)-0.1rem)] bg-[var(--surface-soft)]">
+                      <img
+                        src={visual.imageUrl}
+                        alt={product.name}
+                        className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.03]"
+                      />
+                    </div>
+                    <Button
+                      data-testid={`product-add-${product.id}`}
+                      type="button"
+                      variant="ghost"
+                      onClick={() => addToCart(product)}
+                      className="absolute -bottom-3 right-2.5 size-8 rounded-full border-2 border-white bg-[var(--coffee-500)] p-0 text-white shadow-[0_10px_20px_rgba(198,122,63,0.28)] transition-transform duration-200 hover:scale-105 hover:bg-[var(--coffee-600)] hover:text-white disabled:bg-[var(--sand-300)] disabled:text-white/80"
+                      aria-label={`Tambah ${product.name}`}
+                      disabled={product.stock <= 0}
+                    >
+                      <Plus className="size-3.5" />
+                    </Button>
                   </div>
-                  <Button data-testid={`product-add-${product.id}`} type="button" onClick={() => addToCart(product)}>
-                    <Plus className="size-4" />
-                    Tambah
-                  </Button>
+
+                  <div className="space-y-1.5 px-1 pb-0.5 pt-1.5">
+                    <div className="space-y-0.5 pr-9">
+                      <p className="text-[10px] font-medium uppercase tracking-[0.18em] text-[var(--muted)]">{product.category}</p>
+                      <p className="text-sm font-semibold leading-snug text-[var(--ink)]">{product.name}</p>
+                      <p className="text-base font-semibold tracking-[-0.02em] text-[var(--coffee-700)]">{formatCurrency(product.price)}</p>
+                    </div>
+                    <p className="text-[11px] text-[var(--muted)]">{product.stock > 0 ? `Stok ${product.stock}` : "Stok habis"}</p>
+                  </div>
                 </div>
-              </div>
-            </Card>
-          ))}
+              </Card>
+            );
+          })}
         </div>
       </div>
 

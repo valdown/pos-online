@@ -31,6 +31,26 @@ export type Product = {
   status: "Aktif" | "Hampir Habis";
 };
 
+export type CashierInvoiceItem = {
+  productId: string;
+  productName: string;
+  unitPrice: number;
+  quantity: number;
+  lineTotal: number;
+};
+
+export type CashierInvoice = {
+  id: string;
+  orderNumber: string;
+  createdAt: string;
+  items: CashierInvoiceItem[];
+  subtotal: number;
+  tax: number;
+  total: number;
+  cashierName: string;
+  paymentMethod: "cash" | "debit" | "qris";
+};
+
 export type StaffMember = {
   id: string;
   name: string;
@@ -77,6 +97,7 @@ export type AppSettings = {
 export const navigationItems = [
   { href: "/dashboard", label: "Dashboard" },
   { href: "/kasir", label: "POS Kasir" },
+  { href: "/invoice-kasir", label: "Invoice Kasir" },
   { href: "/produk", label: "Produk" },
   { href: "/staf", label: "Staf" },
   { href: "/notifikasi", label: "Notifikasi" },
@@ -125,10 +146,11 @@ export const revenueSeries: RevenuePoint[] = [
 ];
 
 export const popularItems: PopularItem[] = [
-  { name: "Caramel Macchiato", orders: 124, share: 34 },
-  { name: "Beef Burger & Chips", orders: 96, share: 26 },
-  { name: "Bumi Latte", orders: 82, share: 22 },
-  { name: "Kapal Pesiar", orders: 58, share: 18 },
+  { name: "Caramel Macchiato", orders: 124, share: 31 },
+  { name: "Beef Burger & Chips", orders: 96, share: 24 },
+  { name: "Bumi Latte", orders: 82, share: 20 },
+  { name: "Kapal Pesiar", orders: 58, share: 14 },
+  { name: "Croissant Almond", orders: 44, share: 11 },
 ];
 
 export const productCategories: ProductCategory[] = [
@@ -227,6 +249,87 @@ export const products: Product[] = [
     sku: "CB-ESP-019",
     soldToday: 25,
     status: "Aktif",
+  },
+];
+
+export const sampleCashierInvoices: CashierInvoice[] = [
+  {
+    id: "inv-demo-001",
+    orderNumber: "TRX-240422-001",
+    createdAt: "2026-04-22T08:15:00.000Z",
+    items: [
+      {
+        productId: "caramel-macchiato",
+        productName: "Caramel Macchiato",
+        unitPrice: 34000,
+        quantity: 2,
+        lineTotal: 68000,
+      },
+      {
+        productId: "croissant-almond",
+        productName: "Croissant Almond",
+        unitPrice: 28000,
+        quantity: 1,
+        lineTotal: 28000,
+      },
+    ],
+    subtotal: 96000,
+    tax: 10560,
+    total: 106560,
+    cashierName: "Kasir Demo",
+    paymentMethod: "qris",
+  },
+  {
+    id: "inv-demo-002",
+    orderNumber: "TRX-240422-002",
+    createdAt: "2026-04-22T09:40:00.000Z",
+    items: [
+      {
+        productId: "beef-burger-chips",
+        productName: "Beef Burger & Chips",
+        unitPrice: 52000,
+        quantity: 1,
+        lineTotal: 52000,
+      },
+      {
+        productId: "flat-white",
+        productName: "Flat White",
+        unitPrice: 30000,
+        quantity: 1,
+        lineTotal: 30000,
+      },
+    ],
+    subtotal: 82000,
+    tax: 9020,
+    total: 91020,
+    cashierName: "Kasir Demo",
+    paymentMethod: "debit",
+  },
+  {
+    id: "inv-demo-003",
+    orderNumber: "TRX-240422-003",
+    createdAt: "2026-04-22T11:05:00.000Z",
+    items: [
+      {
+        productId: "aren-latte",
+        productName: "Aren Latte",
+        unitPrice: 32000,
+        quantity: 2,
+        lineTotal: 64000,
+      },
+      {
+        productId: "matcha-cloud",
+        productName: "Matcha Cloud",
+        unitPrice: 33000,
+        quantity: 1,
+        lineTotal: 33000,
+      },
+    ],
+    subtotal: 97000,
+    tax: 10670,
+    total: 107670,
+    cashierName: "Kasir Demo",
+    paymentMethod: "cash",
   },
 ];
 

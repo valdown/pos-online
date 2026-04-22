@@ -19,9 +19,11 @@ type OrderPayload = {
 export async function POST(request: Request) {
   const payload = (await request.json()) as OrderPayload;
   const supabase = await createServerSupabaseClient();
+  const orderNumber = `TRX-${Date.now()}`;
+  const createdAt = new Date().toISOString();
 
   if (!supabase) {
-    return NextResponse.json({ mode: "demo" as const });
+    return NextResponse.json({ mode: "demo" as const, orderNumber, createdAt });
   }
 
   const {
@@ -32,7 +34,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Session Supabase tidak ditemukan. Login ulang dulu." }, { status: 401 });
   }
 
-  const orderNumber = `ORD-${Date.now()}`;
   const { data: order, error: orderError } = await supabase
     .from("sales_orders")
     .insert({
@@ -66,5 +67,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Order utama tersimpan, tetapi item order gagal masuk. Periksa schema sales_order_items." }, { status: 500 });
   }
 
-  return NextResponse.json({ mode: "supabase" as const, orderNumber });
+  return NextResponse.json({ mode: "supabase" as const, orderNumber, createdAt });
 }
