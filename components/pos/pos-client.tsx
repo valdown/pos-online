@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { CreditCard, Minus, Plus, ReceiptText, RotateCcw, ShoppingBag, Wallet } from "lucide-react";
+import { CreditCard, Minus, Plus, ReceiptText, RotateCcw, Search, ShoppingBag, Wallet, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { appendCashierInvoice } from "@/lib/cashier-invoice-storage";
 import type { Product, ProductCategory } from "@/lib/mock-data";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -69,16 +70,20 @@ export function PosClient({
   taxRate: number;
 }) {
   const [activeCategory, setActiveCategory] = useState<ProductCategory>("Semua");
+  const [searchQuery, setSearchQuery] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [cart, setCart] = useState<CartItem[]>([]);
 
   const filteredProducts = useMemo(() => {
-    if (activeCategory === "Semua") {
-      return products;
-    }
+    const normalizedQuery = searchQuery.trim().toLowerCase();
 
-    return products.filter((product) => product.category === activeCategory);
-  }, [activeCategory, products]);
+    return products.filter((product) => {
+      const matchesCategory = activeCategory === "Semua" || product.category === activeCategory;
+      const matchesSearch = !normalizedQuery || product.name.toLowerCase().includes(normalizedQuery);
+
+      return matchesCategory && matchesSearch;
+    });
+  }, [activeCategory, products, searchQuery]);
 
   const subtotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
   const tax = Math.round(subtotal * (taxRate / 100));
@@ -222,11 +227,34 @@ export function PosClient({
                 </button>
               ))}
             </div>
+
+            <div className="relative max-w-xl">
+              <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
+              <Input
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search menu name"
+                aria-label="Cari nama menu"
+                data-testid="menu-search-input"
+                className="h-11 rounded-full border-[var(--line)] bg-white pl-11 pr-11 shadow-none"
+              />
+              {searchQuery ? (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery("")}
+                  aria-label="Clear menu search"
+                  className="absolute right-3 top-1/2 flex size-7 -translate-y-1/2 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--coffee-700)]"
+                >
+                  <X className="size-4" />
+                </button>
+              ) : null}
+            </div>
           </div>
         </Card>
 
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-          {filteredProducts.map((product) => {
+          {filteredProducts.length ? (
+            filteredProducts.map((product) => {
             const visual = getProductVisual(product);
 
             return (
@@ -268,7 +296,19 @@ export function PosClient({
                 </div>
               </Card>
             );
-          })}
+          })) : (
+            <Card className="col-span-full border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.72)] p-8 text-center">
+              <div className="space-y-2">
+                <p className="text-base font-semibold text-[var(--ink)]">Menu tidak ditemukan</p>
+                <p className="text-sm text-[var(--muted)]">
+                  Tidak ada menu yang cocok untuk pencarian <span className="font-medium text-[var(--ink)]">“{searchQuery}”</span>.
+                </p>
+                <div>
+                  <Button type="button" variant="outline" onClick={() => setSearchQuery("")}>Clear search</Button>
+                </div>
+              </div>
+            </Card>
+          )}
         </div>
       </div>
 
