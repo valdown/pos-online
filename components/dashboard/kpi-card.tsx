@@ -30,37 +30,36 @@ export function KpiCard({ stat }: { stat: DashboardStat }) {
   const { prefix, amount } = splitStatValue(stat.value);
 
   return (
-    <Card className="metric-card h-full min-h-[176px] p-5 sm:min-h-[188px] sm:p-6">
-      <div className="flex h-full items-start gap-4">
-        <div className="flex min-w-0 flex-1 flex-col self-stretch">
-          <div className="flex items-center gap-2.5">
-            <span className="size-1.5 rounded-full bg-[var(--coffee-500)]" aria-hidden="true" />
-            <p className="text-[11px] font-semibold uppercase leading-none tracking-[0.28em] text-[var(--coffee-700)]">{stat.title}</p>
-          </div>
+    <Card className="metric-card h-full min-h-[120px] p-3 sm:min-h-[128px] sm:p-3.5">
+      <div className="flex h-full items-center gap-2">
+        <div className="flex min-w-0 flex-1">
+          <div className="flex min-w-0 flex-col gap-1">
+            <div className="flex min-h-[1.35rem] max-w-[11ch] items-end sm:min-h-[1.5rem]">
+              <p className="text-balance text-[9.5px] font-semibold uppercase leading-[1.15] tracking-[0.22em] text-[var(--coffee-700)] sm:text-[10px]">
+                {stat.title}
+              </p>
+            </div>
 
-          <div className="mt-auto flex min-h-[3.75rem] items-end">
             <div className="min-w-0">
-              <div className="flex flex-wrap items-end gap-x-1.5 gap-y-1">
+              <p
+                className={cn(
+                  "flex min-w-0 items-baseline font-semibold leading-none text-[var(--ink)] tabular-nums",
+                  prefix ? "gap-1 text-[1.42rem] tracking-[-0.038em] sm:text-[1.56rem]" : "text-[1.46rem] tracking-[-0.04em] sm:text-[1.6rem]"
+                )}
+              >
                 {prefix ? (
-                  <span className="pb-0.5 text-xs font-semibold uppercase leading-none tracking-[0.18em] text-[var(--coffee-700)] sm:text-sm">
+                  <span className="shrink-0 text-[0.5em] font-semibold uppercase tracking-[0.14em] text-[var(--coffee-700)]">
                     {prefix}
                   </span>
                 ) : null}
-                <p
-                  className={cn(
-                    "font-semibold leading-none text-[var(--ink)] tabular-nums",
-                    prefix ? "text-[2rem] tracking-[-0.04em] sm:text-[2.2rem]" : "text-[2.15rem] tracking-[-0.045em] sm:text-[2.35rem]"
-                  )}
-                >
-                  {amount}
-                </p>
-              </div>
+                <span className="truncate">{amount}</span>
+              </p>
             </div>
           </div>
         </div>
 
-        <div className="flex size-12 shrink-0 items-center justify-center rounded-[var(--radius-soft)] border border-[var(--line)] bg-white/72 text-[var(--coffee-700)] shadow-[0_12px_24px_rgba(82,49,29,0.08)]">
-          <Icon className="size-[1.15rem]" strokeWidth={1.8} />
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-[var(--radius-soft)] border border-[var(--line)] bg-white/72 text-[var(--coffee-700)] shadow-[0_10px_22px_rgba(82,49,29,0.08)] sm:size-10">
+          <Icon className="size-4 sm:size-[1.05rem]" strokeWidth={1.8} />
         </div>
       </div>
     </Card>

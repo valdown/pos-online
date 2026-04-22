@@ -22,42 +22,45 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <PageHeader
-        eyebrow="Coffee operations"
-        title="Dashboard"
-        description="Ringkasan performa harian dengan visual hangat dan keputusan operasional yang cepat dibaca."
-        actions={<CurrentTimeDisplay />}
-      />
+      <div className="space-y-2 md:space-y-2.5 xl:space-y-2.5">
+        <PageHeader
+          compact
+          eyebrow="Coffee operations"
+          title="Dashboard"
+          description="Ringkasan performa harian dengan visual hangat dan keputusan operasional yang cepat dibaca."
+          actions={<CurrentTimeDisplay />}
+        />
 
-      <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
-        {dashboardStats.map((stat) => (
-          <KpiCard key={stat.title} stat={stat} />
-        ))}
-      </section>
+        <section className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
+          {dashboardStats.map((stat) => (
+            <KpiCard key={stat.title} stat={stat} />
+          ))}
+        </section>
 
-      <section className="grid gap-5 2xl:grid-cols-[1.45fr_0.95fr]">
-        <Card className="flex h-full flex-col p-5 sm:p-6">
-          <CardHeader className="space-y-2 pb-4">
-            <CardTitle>Grafik Pendapatan</CardTitle>
-            <CardDescription>Pergerakan omzet tujuh hari terakhir, dipuncaki traffic akhir pekan.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 space-y-0">
-            <RevenueChart data={revenueSeries} />
-          </CardContent>
-        </Card>
+        <section className="grid gap-1.5 xl:grid-cols-[minmax(0,1.36fr)_minmax(17.5rem,0.78fr)] xl:items-stretch 2xl:grid-cols-[minmax(0,1.48fr)_minmax(19rem,0.7fr)]">
+          <Card className="flex h-full flex-col p-2 sm:p-2.5">
+            <CardHeader className="space-y-1 pb-1">
+              <CardTitle>Grafik Pendapatan</CardTitle>
+              <CardDescription className="text-[12px] leading-[1.125rem]">Pergerakan omzet tujuh hari terakhir, dipuncaki traffic akhir pekan.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-1 items-stretch space-y-0">
+              <RevenueChart data={revenueSeries} />
+            </CardContent>
+          </Card>
 
-        <Card className="flex h-full flex-col p-5 sm:p-6">
-          <CardHeader className="space-y-2 pb-4">
-            <CardTitle>Menu Terlaris</CardTitle>
-            <CardDescription>Kontributor transaksi terbesar untuk kombo minuman dan makanan.</CardDescription>
-          </CardHeader>
-          <CardContent className="flex-1 space-y-0">
-            <PopularItemsChart data={popularItems} />
-          </CardContent>
-        </Card>
-      </section>
+          <Card className="flex h-full w-full flex-col p-2 sm:p-2.5 xl:max-w-[22rem] xl:justify-self-end">
+            <CardHeader className="space-y-1 pb-0.5">
+              <CardTitle>Menu Terlaris</CardTitle>
+              <CardDescription className="text-[12px] leading-[1.125rem]">Kontributor transaksi terbesar untuk kombo minuman dan makanan.</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-1 items-stretch space-y-0">
+              <PopularItemsChart data={popularItems} />
+            </CardContent>
+          </Card>
+        </section>
+      </div>
 
-      <section className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
+      <section className="hidden grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
         <Card className="p-6">
           <CardHeader>
             <CardTitle>Update Operasional</CardTitle>

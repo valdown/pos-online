@@ -7,15 +7,16 @@ import { formatCurrency } from "@/lib/utils";
 
 export function RevenueChart({ data }: { data: RevenuePoint[] }) {
   return (
-    <div className="h-[300px] w-full">
+    <div className="h-full min-h-[156px] w-full xl:min-h-0">
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={data} barGap={10}>
+        <BarChart data={data} barGap={4} margin={{ top: 0, right: 2, bottom: 0, left: -18 }}>
           <CartesianGrid vertical={false} stroke="rgba(126, 102, 82, 0.12)" />
-          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "var(--muted)", fontSize: 12 }} />
+          <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: "var(--muted)", fontSize: 8.5 }} tickMargin={3} />
           <YAxis
             axisLine={false}
             tickLine={false}
-            tick={{ fill: "var(--muted)", fontSize: 12 }}
+            width={26}
+            tick={{ fill: "var(--muted)", fontSize: 8.5 }}
             tickFormatter={(value: number) => `${Math.round(value / 1000000)} jt`}
           />
           <Tooltip
@@ -27,7 +28,7 @@ export function RevenueChart({ data }: { data: RevenuePoint[] }) {
             }}
             formatter={(value: number) => [formatCurrency(value), "Pendapatan"]}
           />
-          <Bar dataKey="revenue" fill="var(--coffee-500)" radius={[16, 16, 8, 8]} maxBarSize={42} />
+          <Bar dataKey="revenue" fill="var(--coffee-500)" radius={[9, 9, 4, 4]} maxBarSize={26} />
         </BarChart>
       </ResponsiveContainer>
     </div>
