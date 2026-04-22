@@ -28,7 +28,7 @@ export default function LoginPage() {
                       <div className="min-w-0 flex-1 space-y-4">
                         <div className="inline-flex w-fit items-center gap-2 rounded-[var(--radius-pill)] border border-white/14 bg-white/8 px-3 py-1.5 text-[0.68rem] font-semibold uppercase tracking-[0.28em] text-white/78">
                           <span className="size-1.5 rounded-full bg-[var(--coffee-300)]" />
-                          Valyons Coffee POS
+                          Point of Sale
                         </div>
 
                         <div className="space-y-3">
@@ -51,7 +51,7 @@ export default function LoginPage() {
                     <div className="grid gap-3 border-t border-white/12 pt-5 sm:grid-cols-3">
                       <div className="rounded-[var(--radius-soft)] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] px-4 py-3.5">
                         <p className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-white/50">Brand</p>
-                        <p className="mt-2 text-base font-semibold text-white/88">Valyons Coffee</p>
+                        <p className="mt-2 text-base font-semibold text-white/88">Point of Sale</p>
                       </div>
                       <div className="rounded-[var(--radius-soft)] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] px-4 py-3.5">
                         <p className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-white/50">Focus</p>
