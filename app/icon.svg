@@ -1,13 +1,14 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
-  <rect width="64" height="64" rx="18" fill="#7A4B2C" />
-  <path
-    d="M38.5 14.5C30 16 23.5 23.5 23.5 32.5C23.5 42.8 31.4 50.5 40.8 50.5C45.8 50.5 49.7 47.2 49.7 42.6C49.7 39 47.1 36.5 43.6 36.5C39 36.5 36.7 40 34.7 43.4C32.8 46.5 31.4 48.5 28.9 48.5C25.4 48.5 22.5 44.2 22.5 38.8C22.5 28.7 30.7 19.5 40.8 17.5C42.1 17.2 42.7 16.1 42.4 15.1C42.1 14.1 40.9 13.9 38.5 14.5Z"
-    fill="#FFF7F0"
-  />
-  <path
-    d="M28 19.5C21.8 23.7 18 30.5 18 37.8C18 46.8 23.3 54 31.2 54C33.8 54 36.5 53 38.6 51.1"
-    stroke="#E4B785"
-    stroke-width="3"
-    stroke-linecap="round"
-  />
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Coffee Bean POS icon">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#c67a3f"/>
+      <stop offset="100%" stop-color="#7a4b2c"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="18" fill="url(#bg)"/>
+  <path d="M20 40h24c0 5.523-4.477 10-10 10h-4c-5.523 0-10-4.477-10-10Z" fill="#fff7f0" opacity="0.98"/>
+  <path d="M24 24h16v17a8 8 0 0 1-8 8 8 8 0 0 1-8-8V24Z" fill="#fffdfb"/>
+  <path d="M40 28h3a5 5 0 0 1 0 10h-3" fill="none" stroke="#fffdfb" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M28 17c-2 2.2-2 4.3 0 6.3" fill="none" stroke="#fff7f0" stroke-width="2.5" stroke-linecap="round"/>
+  <path d="M34 15c-2.2 2.4-2.3 4.8-.1 7.1" fill="none" stroke="#fff7f0" stroke-width="2.5" stroke-linecap="round"/>
 </svg>

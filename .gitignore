@@ -8,3 +8,7 @@ yarn-error.log*
 .env
 .env.local
 .env.*.local
+SYSTEM_MAP.md
+.playwright-mcp/
+kasir-cards-after-fix.png
+tsconfig.tsbuildinfo

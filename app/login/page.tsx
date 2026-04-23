@@ -36,10 +36,6 @@ export default function LoginPage() {
                             <h1 className="font-display text-[3rem] leading-[0.92] text-white/94 xl:text-[3.35rem]">Welcome Team</h1>
                             <p className="text-xs font-semibold uppercase tracking-[0.28em] text-white/56">Internal Shop Operations Suite</p>
                           </div>
-
-                          {/* <p className="max-w-xl text-sm leading-6 text-white/70 xl:text-[0.98rem]">
-                            Satu ruang kerja untuk menjaga kasir, stok, dan ritme pelayanan tetap selaras dari buka sampai closing.
-                          </p> */}
                         </div>
                       </div>
 
@@ -59,7 +55,7 @@ export default function LoginPage() {
                       </div>
                       <div className="rounded-[var(--radius-soft)] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.12),rgba(255,255,255,0.04))] px-4 py-3.5">
                         <p className="text-[0.62rem] font-semibold uppercase tracking-[0.24em] text-white/50">Access</p>
-                        <p className="mt-2 text-base font-semibold text-white/88">Dashboard Internal Employee</p>
+                        <p className="mt-2 text-base font-semibold text-white/88">Owner Internal Workspace</p>
                       </div>
                     </div>
                   </div>
