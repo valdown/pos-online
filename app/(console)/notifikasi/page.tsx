@@ -4,14 +4,14 @@ import { useEffect, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useDemoSettings } from "@/components/providers/demo-settings";
+import { useSettings } from "@/components/providers/settings";
 import { PageHeader } from "@/components/ui/page-header";
 import { NotificationSettingsForm } from "@/components/forms/notification-settings-form";
 import { notificationsFeed, type NotificationFeedItem } from "@/lib/mock-data";
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export default function NotificationsPage() {
-  const { notificationSettings, persistenceMode } = useDemoSettings();
+  const { notificationSettings, persistenceMode } = useSettings();
   const [feed, setFeed] = useState<NotificationFeedItem[]>(notificationsFeed);
 
   useEffect(() => {
@@ -38,7 +38,9 @@ export default function NotificationsPage() {
         description={
           persistenceMode === "supabase"
             ? "Atur broadcast alert penting dan simpan konfigurasinya ke Supabase. Feed juga akan dibaca dari tabel notification_feed bila tersedia."
-            : "Atur broadcast alert penting dengan form lokal yang tersimpan di browser ini untuk preview workflow notifikasi operasional."
+            : persistenceMode === "supabase-fallback"
+              ? "Supabase terdeteksi, tetapi pembacaan atau sinkronisasi terakhir gagal. Feed dan form sementara memakai fallback lokal agar workflow tetap jalan."
+              : "Atur broadcast alert penting dengan form lokal yang tersimpan di browser ini untuk preview workflow notifikasi operasional."
         }
         actions={<Badge variant="success">{notificationSettings.telegramEnabled ? "Telegram tersambung" : "Telegram nonaktif"}</Badge>}
       />
@@ -49,7 +51,7 @@ export default function NotificationsPage() {
         <Card className="p-6">
           <CardHeader>
             <CardTitle>Feed notifikasi terbaru</CardTitle>
-            <CardDescription>Preview pesan yang akan dilihat owner dari panel demo Telegram dan sistem internal.</CardDescription>
+            <CardDescription>Preview pesan yang akan dilihat owner dari panel Telegram dan sistem internal.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">

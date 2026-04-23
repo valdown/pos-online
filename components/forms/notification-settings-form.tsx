@@ -9,7 +9,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useDemoSettings } from "@/components/providers/demo-settings";
+import { useSettings } from "@/components/providers/settings";
 import { Switch } from "@/components/ui/switch";
 
 const notificationSchema = z.object({
@@ -25,7 +25,7 @@ const notificationSchema = z.object({
 type NotificationValues = z.infer<typeof notificationSchema>;
 
 export function NotificationSettingsForm() {
-  const { notificationSettings, persistenceMode, setNotificationSettings } = useDemoSettings();
+  const { notificationSettings, persistenceMode, setNotificationSettings } = useSettings();
 
   const form = useForm<NotificationValues>({
     resolver: zodResolver(notificationSchema),
@@ -37,32 +37,42 @@ export function NotificationSettingsForm() {
   }, [notificationSettings, form]);
 
   const onSubmit = form.handleSubmit(async (values) => {
-    await setNotificationSettings(values);
-    toast.success("Konfigurasi notifikasi tersimpan.", {
-      description:
-        persistenceMode === "supabase"
-          ? `Pengiriman ${values.digestFrequency.toLowerCase()} diperbarui dan disimpan ke Supabase.`
-          : `Pengiriman ${values.digestFrequency.toLowerCase()} diperbarui untuk demo lokal ini.`,
-    });
+    try {
+      await setNotificationSettings(values);
+      toast.success("Konfigurasi notifikasi tersimpan.", {
+        description:
+          persistenceMode === "supabase"
+            ? `Pengiriman ${values.digestFrequency.toLowerCase()} diperbarui dan disimpan ke Supabase.`
+            : persistenceMode === "supabase-fallback"
+              ? `Supabase sedang fallback, jadi perubahan tetap disimpan lokal untuk sementara.`
+              : `Pengiriman ${values.digestFrequency.toLowerCase()} diperbarui untuk penyimpanan lokal di browser ini.`,
+      });
+    } catch (error) {
+      toast.error("Konfigurasi notifikasi gagal disimpan.", {
+        description: error instanceof Error ? error.message : "Periksa koneksi Supabase dan schema notification_settings.",
+      });
+    }
   });
 
   return (
     <Card className="p-6">
       <CardHeader>
         <CardTitle>Pengaturan Telegram</CardTitle>
-        <CardDescription>
-          {persistenceMode === "supabase"
-            ? "Atur alur notifikasi dan simpan konfigurasi langsung ke Supabase dari browser yang sudah login."
-            : "Atur alur notifikasi untuk preview lokal. Perubahan disimpan di browser ini tanpa koneksi backend eksternal."}
-        </CardDescription>
-      </CardHeader>
+          <CardDescription>
+            {persistenceMode === "supabase"
+              ? "Atur alur notifikasi dan simpan konfigurasi langsung ke Supabase dari browser yang sudah login."
+              : persistenceMode === "supabase-fallback"
+                ? "Supabase terdeteksi, tetapi sinkronisasi terakhir gagal. Form tetap jalan dengan fallback lokal sampai koneksi pulih."
+                : "Atur alur notifikasi untuk preview lokal. Perubahan disimpan di browser ini tanpa koneksi backend eksternal."}
+          </CardDescription>
+        </CardHeader>
 
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-5">
           <div className="form-row">
             <div>
               <p className="font-medium text-[var(--ink)]">Aktifkan Telegram</p>
-              <p className="text-sm text-[var(--muted)]">Gunakan bot demo untuk broadcast status operasional.</p>
+              <p className="text-sm text-[var(--muted)]">Gunakan bot Telegram untuk broadcast status operasional.</p>
             </div>
             <Switch checked={form.watch("telegramEnabled")} onCheckedChange={(checked) => form.setValue("telegramEnabled", checked)} />
           </div>

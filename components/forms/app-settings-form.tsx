@@ -9,7 +9,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { useDemoSettings } from "@/components/providers/demo-settings";
+import { useSettings } from "@/components/providers/settings";
 import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/lib/utils";
 
@@ -30,7 +30,7 @@ const settingsSchema = z.object({
 type SettingsValues = z.infer<typeof settingsSchema>;
 
 export function AppSettingsForm() {
-  const { appSettings, persistenceMode, setAppSettings } = useDemoSettings();
+  const { appSettings, persistenceMode, setAppSettings } = useSettings();
 
   const form = useForm<SettingsValues>({
     resolver: zodResolver(settingsSchema),
@@ -42,25 +42,35 @@ export function AppSettingsForm() {
   }, [appSettings, form]);
 
   const onSubmit = form.handleSubmit(async (values) => {
-    await setAppSettings(values);
-    toast.success("Pengaturan toko diperbarui.", {
-      description:
-        persistenceMode === "supabase"
-          ? `Pajak ${values.taxRate}% dan modal kas ${formatCurrency(values.openingCash)} tersimpan ke Supabase.`
-          : `Pajak ${values.taxRate}% dan modal kas ${formatCurrency(values.openingCash)} tersimpan ke demo lokal ini.`,
-    });
+    try {
+      await setAppSettings(values);
+      toast.success("Pengaturan toko diperbarui.", {
+        description:
+          persistenceMode === "supabase"
+            ? `Pajak ${values.taxRate}% dan modal kas ${formatCurrency(values.openingCash)} tersimpan ke Supabase.`
+            : persistenceMode === "supabase-fallback"
+              ? `Supabase sedang fallback, jadi perubahan tetap disimpan lokal sambil menunggu koneksi normal kembali.`
+              : `Pajak ${values.taxRate}% dan modal kas ${formatCurrency(values.openingCash)} tersimpan lokal di browser ini.`,
+      });
+    } catch (error) {
+      toast.error("Pengaturan toko gagal disimpan.", {
+        description: error instanceof Error ? error.message : "Periksa koneksi Supabase dan schema app_settings.",
+      });
+    }
   });
 
   return (
     <Card className="p-6">
       <CardHeader>
         <CardTitle>Konfigurasi aplikasi</CardTitle>
-        <CardDescription>
-          {persistenceMode === "supabase"
-            ? "Sesuaikan identitas toko, pajak, struk, dan rekening settlement. Perubahan akan di-upsert ke tabel Supabase."
-            : "Sesuaikan identitas toko, pajak, struk, dan rekening settlement. Perubahan disimpan ke state demo lokal dan dipakai lintas halaman."}
-        </CardDescription>
-      </CardHeader>
+          <CardDescription>
+            {persistenceMode === "supabase"
+              ? "Sesuaikan identitas toko, pajak, struk, dan rekening settlement. Perubahan akan di-upsert ke tabel Supabase."
+              : persistenceMode === "supabase-fallback"
+                ? "Supabase terdeteksi, tetapi sinkronisasi terakhir gagal. Perubahan tetap disimpan lokal sampai koneksi atau schema kembali normal."
+                : "Sesuaikan identitas toko, pajak, struk, dan rekening settlement. Perubahan disimpan lokal di browser ini dan dipakai lintas halaman."}
+          </CardDescription>
+        </CardHeader>
 
       <CardContent>
         <form onSubmit={onSubmit} className="space-y-6">
@@ -117,7 +127,7 @@ export function AppSettingsForm() {
           <div className="form-row">
             <div>
               <p className="font-medium text-[var(--ink)]">Cetak struk otomatis</p>
-              <p className="text-sm text-[var(--muted)]">Aktifkan agar setiap transaksi demo langsung menampilkan status print.</p>
+              <p className="text-sm text-[var(--muted)]">Aktifkan agar setiap transaksi langsung menampilkan status print.</p>
             </div>
             <Switch checked={form.watch("autoPrintReceipt")} onCheckedChange={(checked) => form.setValue("autoPrintReceipt", checked)} />
           </div>

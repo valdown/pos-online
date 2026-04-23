@@ -252,87 +252,6 @@ export const products: Product[] = [
   },
 ];
 
-export const sampleCashierInvoices: CashierInvoice[] = [
-  {
-    id: "inv-demo-001",
-    orderNumber: "TRX-240422-001",
-    createdAt: "2026-04-22T08:15:00.000Z",
-    items: [
-      {
-        productId: "caramel-macchiato",
-        productName: "Caramel Macchiato",
-        unitPrice: 34000,
-        quantity: 2,
-        lineTotal: 68000,
-      },
-      {
-        productId: "croissant-almond",
-        productName: "Croissant Almond",
-        unitPrice: 28000,
-        quantity: 1,
-        lineTotal: 28000,
-      },
-    ],
-    subtotal: 96000,
-    tax: 10560,
-    total: 106560,
-    cashierName: "Kasir Demo",
-    paymentMethod: "qris",
-  },
-  {
-    id: "inv-demo-002",
-    orderNumber: "TRX-240422-002",
-    createdAt: "2026-04-22T09:40:00.000Z",
-    items: [
-      {
-        productId: "beef-burger-chips",
-        productName: "Beef Burger & Chips",
-        unitPrice: 52000,
-        quantity: 1,
-        lineTotal: 52000,
-      },
-      {
-        productId: "flat-white",
-        productName: "Flat White",
-        unitPrice: 30000,
-        quantity: 1,
-        lineTotal: 30000,
-      },
-    ],
-    subtotal: 82000,
-    tax: 9020,
-    total: 91020,
-    cashierName: "Kasir Demo",
-    paymentMethod: "debit",
-  },
-  {
-    id: "inv-demo-003",
-    orderNumber: "TRX-240422-003",
-    createdAt: "2026-04-22T11:05:00.000Z",
-    items: [
-      {
-        productId: "aren-latte",
-        productName: "Aren Latte",
-        unitPrice: 32000,
-        quantity: 2,
-        lineTotal: 64000,
-      },
-      {
-        productId: "matcha-cloud",
-        productName: "Matcha Cloud",
-        unitPrice: 33000,
-        quantity: 1,
-        lineTotal: 33000,
-      },
-    ],
-    subtotal: 97000,
-    tax: 10670,
-    total: 107670,
-    cashierName: "Kasir Demo",
-    paymentMethod: "cash",
-  },
-];
-
 export const staffMembers: StaffMember[] = [
   {
     id: "stf-001",
@@ -410,8 +329,8 @@ export const notificationsFeed: NotificationFeedItem[] = [
 
 export const defaultNotificationSettings: NotificationSettings = {
   telegramEnabled: true,
-  botToken: "demo-telegram-bot-token",
-  chatId: "demo-chat-room-id",
+  botToken: "placeholder-telegram-bot-token",
+  chatId: "placeholder-chat-room-id",
   digestFrequency: "Real-time",
   lowStockAlert: true,
   cashierSummary: true,

@@ -2,13 +2,13 @@
 
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useDemoSettings } from "@/components/providers/demo-settings";
+import { useSettings } from "@/components/providers/settings";
 import { PageHeader } from "@/components/ui/page-header";
 import { AppSettingsForm } from "@/components/forms/app-settings-form";
 import { formatCurrency } from "@/lib/utils";
 
 export default function SettingsPage() {
-  const { appSettings, persistenceMode } = useDemoSettings();
+  const { appSettings, persistenceMode } = useSettings();
 
   return (
     <>
@@ -16,7 +16,7 @@ export default function SettingsPage() {
         eyebrow="Store controls"
         title="Pengaturan"
         description="Konfigurasi identitas toko, tax, bank, dan kebijakan struk dalam struktur form yang rapi dan mudah dipelihara."
-        actions={<Badge variant="neutral">{persistenceMode === "supabase" ? "Supabase tersambung" : "Cabang aktif 1"}</Badge>}
+        actions={<Badge variant="neutral">{persistenceMode === "supabase" ? "Supabase tersambung" : persistenceMode === "supabase-fallback" ? "Fallback lokal aktif" : "Cabang aktif 1"}</Badge>}
       />
 
       <div className="grid gap-6 xl:grid-cols-[1.14fr_0.86fr]">

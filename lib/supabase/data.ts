@@ -22,7 +22,13 @@ import {
   staffMembers as fallbackStaffMembers,
 } from "@/lib/mock-data";
 import { SUPABASE_SETTINGS_ROW_ID } from "@/lib/supabase/config";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import {
+  type AppSettingsRow,
+  type NotificationSettingsRow,
+  mapAppSettingsRowToModel,
+  mapNotificationSettingsRowToModel,
+} from "@/lib/supabase/settings";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 type DashboardStatRow = DashboardStat & { sort_order?: number };
 type RevenuePointRow = RevenuePoint & { sort_order?: number };
@@ -51,7 +57,7 @@ function mapProductRow(row: ProductRow): Product {
 }
 
 async function selectRows<T>(table: string, fallback: T[], orderBy = "sort_order") {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
 
   if (!supabase) {
     return fallback;
@@ -92,7 +98,7 @@ export async function getNotificationFeed() {
 }
 
 export async function getCashierSnapshot() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
 
   if (!supabase) {
     return fallbackCashierSnapshot;
@@ -116,35 +122,23 @@ export async function getCashierSnapshot() {
 }
 
 export async function getServerAppSettings() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
 
   if (!supabase) {
     return defaultAppSettings;
   }
 
-  const { data, error } = await supabase.from("app_settings").select("*").eq("id", SUPABASE_SETTINGS_ROW_ID).maybeSingle<AppSettings & { id: string }>();
+  const { data, error } = await supabase.from("app_settings").select("*").eq("id", SUPABASE_SETTINGS_ROW_ID).maybeSingle<AppSettingsRow>();
 
   if (error || !data) {
     return defaultAppSettings;
   }
 
-  return {
-    storeName: data.storeName,
-    branchName: data.branchName,
-    taxRate: data.taxRate,
-    serviceFee: data.serviceFee,
-    storePhone: data.storePhone,
-    receiptFooter: data.receiptFooter,
-    bankName: data.bankName,
-    bankAccountName: data.bankAccountName,
-    bankAccountNumber: data.bankAccountNumber,
-    openingCash: data.openingCash,
-    autoPrintReceipt: data.autoPrintReceipt,
-  } satisfies AppSettings;
+  return mapAppSettingsRowToModel(data) satisfies AppSettings;
 }
 
 export async function getServerNotificationSettings() {
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
 
   if (!supabase) {
     return defaultNotificationSettings;
@@ -154,19 +148,11 @@ export async function getServerNotificationSettings() {
     .from("notification_settings")
     .select("*")
     .eq("id", SUPABASE_SETTINGS_ROW_ID)
-    .maybeSingle<NotificationSettings & { id: string }>();
+    .maybeSingle<NotificationSettingsRow>();
 
   if (error || !data) {
     return defaultNotificationSettings;
   }
 
-  return {
-    telegramEnabled: data.telegramEnabled,
-    botToken: data.botToken,
-    chatId: data.chatId,
-    digestFrequency: data.digestFrequency,
-    lowStockAlert: data.lowStockAlert,
-    cashierSummary: data.cashierSummary,
-    refundAlert: data.refundAlert,
-  } satisfies NotificationSettings;
+  return mapNotificationSettingsRowToModel(data) satisfies NotificationSettings;
 }
