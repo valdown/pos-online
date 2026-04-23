@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { APP_SESSION_COOKIE } from "@/lib/auth";
+import { resolveInternalSessionUser } from "@/lib/internal-auth";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 type OrderPayload = {
   paymentMethod: string;
@@ -18,20 +21,19 @@ type OrderPayload = {
 
 export async function POST(request: Request) {
   const payload = (await request.json()) as OrderPayload;
-  const supabase = await createServerSupabaseClient();
+  const supabase = createAdminSupabaseClient();
   const orderNumber = `TRX-${Date.now()}`;
   const createdAt = new Date().toISOString();
 
   if (!supabase) {
-    return NextResponse.json({ mode: "demo" as const, orderNumber, createdAt });
+    return NextResponse.json({ error: "SUPABASE_SECRET_KEY belum aktif, jadi transaksi tidak bisa disimpan." }, { status: 500 });
   }
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const cookieStore = await cookies();
+  const currentUser = await resolveInternalSessionUser(cookieStore.get(APP_SESSION_COOKIE)?.value ?? null);
 
-  if (!user) {
-    return NextResponse.json({ error: "Session Supabase tidak ditemukan. Login ulang dulu." }, { status: 401 });
+  if (!currentUser) {
+    return NextResponse.json({ error: "Session internal tidak ditemukan. Login ulang dulu." }, { status: 401 });
   }
 
   const { data: order, error: orderError } = await supabase
@@ -42,8 +44,8 @@ export async function POST(request: Request) {
       subtotal: payload.subtotal,
       tax_amount: payload.tax,
       total_amount: payload.total,
+      cashier_name: currentUser.name,
       status: "paid",
-      user_id: user.id,
     })
     .select("id")
     .single<{ id: string }>();
@@ -67,5 +69,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Order utama tersimpan, tetapi item order gagal masuk. Periksa schema sales_order_items." }, { status: 500 });
   }
 
-  return NextResponse.json({ mode: "supabase" as const, orderNumber, createdAt });
+  return NextResponse.json({ orderNumber, createdAt });
 }

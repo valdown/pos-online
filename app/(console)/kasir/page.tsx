@@ -4,14 +4,14 @@ import { useEffect, useMemo, useState } from "react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { useDemoSettings } from "@/components/providers/demo-settings";
+import { useSettings } from "@/components/providers/settings";
 import { PageHeader } from "@/components/ui/page-header";
 import { PosClient } from "@/components/pos/pos-client";
 import { productCategories, products, type Product, type ProductCategory } from "@/lib/mock-data";
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 
 export default function KasirPage() {
-  const { appSettings, persistenceMode } = useDemoSettings();
+  const { appSettings, persistenceMode } = useSettings();
   const [catalog, setCatalog] = useState<Product[]>(products);
 
   useEffect(() => {
@@ -52,10 +52,16 @@ export default function KasirPage() {
       <PageHeader
         eyebrow="Golden path checkout"
         title="POS Kasir"
-        description={`Alur demo transaksi lokal lengkap dengan pajak aktif ${appSettings.taxRate}%: pilih kategori, tambahkan item ke keranjang, pilih metode bayar, lalu checkout.`}
+        description={
+          persistenceMode === "supabase"
+            ? `Alur transaksi aktif dengan pajak ${appSettings.taxRate}% dan penyimpanan Supabase: pilih kategori, tambahkan item ke keranjang, pilih metode bayar, lalu checkout.`
+            : persistenceMode === "supabase-fallback"
+              ? `Supabase sedang fallback, jadi checkout tetap jalan dengan cache lokal dan pajak aktif ${appSettings.taxRate}%.`
+              : `Alur transaksi lokal tetap aktif dengan pajak ${appSettings.taxRate}% sambil menunggu koneksi database kembali normal.`
+        }
         actions={
           <>
-            <Badge variant="accent">{persistenceMode === "supabase" ? "Mode Supabase" : "Mode Demo"}</Badge>
+            <Badge variant="accent">{persistenceMode === "supabase" ? "Mode Supabase" : persistenceMode === "supabase-fallback" ? "Mode Fallback" : "Mode Lokal"}</Badge>
             <Button variant="outline">Hari Ini</Button>
           </>
         }

@@ -1,13 +1,12 @@
-"use client";
-
-import { useEffect, useMemo, useState } from "react";
-
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
-import { getStoredCashierInvoices } from "@/lib/cashier-invoice-storage";
-import { sampleCashierInvoices, type CashierInvoice } from "@/lib/mock-data";
+import type { CashierInvoice } from "@/lib/mock-data";
+import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { mapSalesOrderRowsToCashierInvoices, type SalesOrderRow } from "@/lib/supabase/invoices";
 import { formatCurrency } from "@/lib/utils";
+
+export const dynamic = "force-dynamic";
 
 function formatInvoiceDate(value: string) {
   const date = new Date(value);
@@ -29,15 +28,31 @@ function getTotalQuantity(invoice: CashierInvoice) {
   return invoice.items.reduce((sum, item) => sum + item.quantity, 0);
 }
 
-export default function InvoiceKasirPage() {
-  const [invoices, setInvoices] = useState<CashierInvoice[]>(sampleCashierInvoices);
+async function getCashierInvoices() {
+  const supabase = createAdminSupabaseClient();
 
-  useEffect(() => {
-    setInvoices(getStoredCashierInvoices());
-  }, []);
+  if (!supabase) {
+    return [] as CashierInvoice[];
+  }
 
+  const { data, error } = await supabase
+    .from("sales_orders")
+    .select(
+      "id, order_number, payment_method, subtotal, tax_amount, total_amount, created_at, cashier_name, sales_order_items(product_id, product_name, unit_price, quantity, line_total)"
+    )
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    return [] as CashierInvoice[];
+  }
+
+  return mapSalesOrderRowsToCashierInvoices((data ?? []) as SalesOrderRow[]);
+}
+
+export default async function InvoiceKasirPage() {
+  const invoices = await getCashierInvoices();
   const totalTransactions = invoices.length;
-  const totalRevenue = useMemo(() => invoices.reduce((sum, invoice) => sum + invoice.total, 0), [invoices]);
+  const totalRevenue = invoices.reduce((sum, invoice) => sum + invoice.total, 0);
 
   return (
     <>
@@ -74,23 +89,31 @@ export default function InvoiceKasirPage() {
                 </tr>
               </thead>
               <tbody>
-                {invoices.map((invoice) => (
-                  <tr key={invoice.id} className="overflow-hidden rounded-[var(--radius-soft)] bg-[rgba(255,255,255,0.72)] shadow-[inset_0_0_0_1px_var(--line)]">
-                    <td className="rounded-l-[var(--radius-soft)] px-4 py-4 align-top">
-                      <p className="font-semibold text-[var(--ink)]">{invoice.orderNumber}</p>
-                      <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">{invoice.paymentMethod}</p>
+                {invoices.length ? (
+                  invoices.map((invoice) => (
+                    <tr key={invoice.id} className="overflow-hidden rounded-[var(--radius-soft)] bg-[rgba(255,255,255,0.72)] shadow-[inset_0_0_0_1px_var(--line)]">
+                      <td className="rounded-l-[var(--radius-soft)] px-4 py-4 align-top">
+                        <p className="font-semibold text-[var(--ink)]">{invoice.orderNumber}</p>
+                        <p className="mt-1 text-xs uppercase tracking-[0.18em] text-[var(--muted)]">{invoice.paymentMethod}</p>
+                      </td>
+                      <td className="px-4 py-4 text-sm whitespace-nowrap text-[var(--muted)]">{formatInvoiceDate(invoice.createdAt)}</td>
+                      <td className="px-4 py-4 align-top">
+                        <p className="max-w-md text-sm leading-6 text-[var(--ink)]">{formatMenuNames(invoice)}</p>
+                      </td>
+                      <td className="px-4 py-4 text-right text-sm whitespace-nowrap tabular-nums text-[var(--muted)]">{getTotalQuantity(invoice)} item</td>
+                      <td className="px-4 py-4 text-right text-sm font-medium whitespace-nowrap tabular-nums text-[var(--ink)]">{formatCurrency(invoice.subtotal)}</td>
+                      <td className="px-4 py-4 text-right text-sm whitespace-nowrap tabular-nums text-[var(--muted)]">{formatCurrency(invoice.tax)}</td>
+                      <td className="px-4 py-4 text-right text-sm font-semibold whitespace-nowrap tabular-nums text-[var(--coffee-700)]">{formatCurrency(invoice.total)}</td>
+                      <td className="rounded-r-[var(--radius-soft)] px-4 py-4 text-sm text-[var(--muted)]">{invoice.cashierName}</td>
+                    </tr>
+                  ))
+                ) : (
+                  <tr>
+                    <td colSpan={8} className="rounded-[var(--radius-soft)] bg-[rgba(255,255,255,0.72)] px-4 py-8 text-center text-sm text-[var(--muted)] shadow-[inset_0_0_0_1px_var(--line)]">
+                      Belum ada invoice kasir yang tersimpan di database aktif ini.
                     </td>
-                    <td className="px-4 py-4 text-sm whitespace-nowrap text-[var(--muted)]">{formatInvoiceDate(invoice.createdAt)}</td>
-                    <td className="px-4 py-4 align-top">
-                      <p className="max-w-md text-sm leading-6 text-[var(--ink)]">{formatMenuNames(invoice)}</p>
-                    </td>
-                    <td className="px-4 py-4 text-right text-sm whitespace-nowrap tabular-nums text-[var(--muted)]">{getTotalQuantity(invoice)} item</td>
-                    <td className="px-4 py-4 text-right text-sm font-medium whitespace-nowrap tabular-nums text-[var(--ink)]">{formatCurrency(invoice.subtotal)}</td>
-                    <td className="px-4 py-4 text-right text-sm whitespace-nowrap tabular-nums text-[var(--muted)]">{formatCurrency(invoice.tax)}</td>
-                    <td className="px-4 py-4 text-right text-sm font-semibold whitespace-nowrap tabular-nums text-[var(--coffee-700)]">{formatCurrency(invoice.total)}</td>
-                    <td className="rounded-r-[var(--radius-soft)] px-4 py-4 text-sm text-[var(--muted)]">{invoice.cashierName}</td>
                   </tr>
-                ))}
+                )}
               </tbody>
             </table>
           </div>
