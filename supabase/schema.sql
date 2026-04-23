@@ -25,6 +25,25 @@ create table if not exists public.popular_items (
   share integer not null default 0
 );
 
+delete from public.dashboard_stats a
+using public.dashboard_stats b
+where a.id < b.id
+  and a.sort_order = b.sort_order;
+
+delete from public.revenue_points a
+using public.revenue_points b
+where a.id < b.id
+  and a.sort_order = b.sort_order;
+
+delete from public.popular_items a
+using public.popular_items b
+where a.id < b.id
+  and a.sort_order = b.sort_order;
+
+create unique index if not exists idx_dashboard_stats_sort_order on public.dashboard_stats (sort_order);
+create unique index if not exists idx_revenue_points_sort_order on public.revenue_points (sort_order);
+create unique index if not exists idx_popular_items_sort_order on public.popular_items (sort_order);
+
 create table if not exists public.products (
   id text primary key,
   name text not null,
@@ -46,6 +65,58 @@ create table if not exists public.staff_members (
   phone text not null,
   status text not null check (status in ('Online', 'Istirahat', 'Off'))
 );
+
+create table if not exists public.staff_credentials (
+  staff_id text primary key references public.staff_members (id) on delete cascade,
+  password_hash text not null,
+  is_owner boolean not null default false,
+  is_active boolean not null default true,
+  password_updated_at timestamptz not null default now(),
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.app_sessions (
+  id uuid primary key default gen_random_uuid(),
+  staff_id text not null references public.staff_members (id) on delete cascade,
+  token_hash text not null unique,
+  expires_at timestamptz not null,
+  last_seen_at timestamptz not null default now(),
+  revoked_at timestamptz,
+  user_agent text,
+  ip_address text,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists idx_app_sessions_staff_id on public.app_sessions (staff_id);
+create index if not exists idx_app_sessions_expires_at on public.app_sessions (expires_at);
+
+alter table public.staff_members add column if not exists auth_user_id uuid unique references auth.users (id) on delete set null;
+alter table public.staff_members add column if not exists email text unique;
+alter table public.staff_members add column if not exists last_seen_at timestamptz;
+alter table public.staff_members add column if not exists last_login_at timestamptz;
+alter table public.staff_members add column if not exists last_logout_at timestamptz;
+create unique index if not exists idx_staff_members_id_auth_user_id on public.staff_members (id, auth_user_id);
+
+create table if not exists public.staff_session_logs (
+  id uuid primary key default gen_random_uuid(),
+  staff_id text not null references public.staff_members (id) on delete cascade,
+  auth_user_id uuid not null references auth.users (id) on delete cascade,
+  session_id uuid,
+  logged_in_at timestamptz not null default now(),
+  last_seen_at timestamptz not null default now(),
+  logged_out_at timestamptz,
+  created_at timestamptz not null default now()
+);
+
+create unique index if not exists idx_staff_session_logs_staff_auth_session on public.staff_session_logs (staff_id, auth_user_id, session_id);
+
+alter table public.staff_session_logs drop constraint if exists staff_session_logs_staff_auth_match;
+alter table public.staff_session_logs
+  add constraint staff_session_logs_staff_auth_match
+  foreign key (staff_id, auth_user_id)
+  references public.staff_members (id, auth_user_id)
+  on delete cascade;
 
 create table if not exists public.notification_feed (
   id text primary key,
@@ -97,10 +168,13 @@ create table if not exists public.sales_orders (
   subtotal integer not null default 0,
   tax_amount integer not null default 0,
   total_amount integer not null default 0,
+  cashier_name text,
   status text not null default 'paid',
   user_id uuid references auth.users (id) on delete set null,
   created_at timestamptz not null default now()
 );
+
+alter table public.sales_orders add column if not exists cashier_name text;
 
 create table if not exists public.sales_order_items (
   id uuid primary key default gen_random_uuid(),
@@ -117,12 +191,15 @@ alter table public.revenue_points enable row level security;
 alter table public.popular_items enable row level security;
 alter table public.products enable row level security;
 alter table public.staff_members enable row level security;
+alter table public.staff_credentials enable row level security;
+alter table public.app_sessions enable row level security;
 alter table public.notification_feed enable row level security;
 alter table public.cashier_snapshot enable row level security;
 alter table public.app_settings enable row level security;
 alter table public.notification_settings enable row level security;
 alter table public.sales_orders enable row level security;
 alter table public.sales_order_items enable row level security;
+alter table public.staff_session_logs enable row level security;
 
 drop policy if exists authenticated_read_dashboard_stats on public.dashboard_stats;
 create policy authenticated_read_dashboard_stats on public.dashboard_stats for select to authenticated using (true);
@@ -134,6 +211,8 @@ drop policy if exists authenticated_read_products on public.products;
 create policy authenticated_read_products on public.products for select to authenticated using (true);
 drop policy if exists authenticated_read_staff_members on public.staff_members;
 create policy authenticated_read_staff_members on public.staff_members for select to authenticated using (true);
+drop policy if exists authenticated_update_own_staff_members on public.staff_members;
+create policy authenticated_update_own_staff_members on public.staff_members for update to authenticated using (auth.uid() = auth_user_id) with check (auth.uid() = auth_user_id);
 drop policy if exists authenticated_read_notification_feed on public.notification_feed;
 create policy authenticated_read_notification_feed on public.notification_feed for select to authenticated using (true);
 drop policy if exists authenticated_read_cashier_snapshot on public.cashier_snapshot;
@@ -161,6 +240,12 @@ create policy authenticated_read_sales_order_items on public.sales_order_items f
       and sales_orders.user_id = auth.uid()
   )
 );
+drop policy if exists authenticated_read_staff_session_logs on public.staff_session_logs;
+create policy authenticated_read_staff_session_logs on public.staff_session_logs for select to authenticated using (auth.uid() = auth_user_id);
+drop policy if exists authenticated_insert_staff_session_logs on public.staff_session_logs;
+create policy authenticated_insert_staff_session_logs on public.staff_session_logs for insert to authenticated with check (auth.uid() = auth_user_id);
+drop policy if exists authenticated_update_own_staff_session_logs on public.staff_session_logs;
+create policy authenticated_update_own_staff_session_logs on public.staff_session_logs for update to authenticated using (auth.uid() = auth_user_id) with check (auth.uid() = auth_user_id);
 
 insert into public.dashboard_stats (sort_order, title, value, delta, description, icon)
 values
@@ -168,7 +253,12 @@ values
   (2, 'Pesanan Selesai', '312', '+28 order', 'dengan SLA tersaji 6 menit', 'badge-check'),
   (3, 'AOV', 'Rp 58.900', '+8,1%', 'ditopang paket pastry pagi', 'receipt'),
   (4, 'Total Item Terjual', '1.284', '+94 item', 'espresso blend dan toast dominan', 'package')
-on conflict do nothing;
+on conflict (sort_order) do update set
+  title = excluded.title,
+  value = excluded.value,
+  delta = excluded.delta,
+  description = excluded.description,
+  icon = excluded.icon;
 
 insert into public.revenue_points (sort_order, day, revenue)
 values
@@ -179,7 +269,9 @@ values
   (5, 'Jum', 3380000),
   (6, 'Sab', 4020000),
   (7, 'Min', 3260000)
-on conflict do nothing;
+on conflict (sort_order) do update set
+  day = excluded.day,
+  revenue = excluded.revenue;
 
 insert into public.popular_items (sort_order, name, orders, share)
 values
@@ -187,7 +279,10 @@ values
   (2, 'Beef Burger & Chips', 96, 26),
   (3, 'Bumi Latte', 82, 22),
   (4, 'Kapal Pesiar', 58, 18)
-on conflict do nothing;
+on conflict (sort_order) do update set
+  name = excluded.name,
+  orders = excluded.orders,
+  share = excluded.share;
 
 insert into public.products (id, name, category, description, price, stock, sku, sold_today, status)
 values
@@ -209,6 +304,20 @@ values
   ('stf-004', 'Salsa Maharani', 'Barista', 'Operasional', '10.00 - 19.00', '0821-6655-7788', 'Online'),
   ('stf-005', 'Bima Prakoso', 'Kasir', 'Kasir', '13.00 - 21.00', '0822-9090-1212', 'Off')
 on conflict do nothing;
+
+update public.staff_members
+set email = 'owner@coffeebean.local', access = 'Penuh'
+where id = 'stf-001';
+
+insert into public.staff_credentials (staff_id, password_hash, is_owner, is_active)
+values ('stf-001', crypt('coffeebean', gen_salt('bf', 12)), true, true)
+on conflict (staff_id)
+do update set
+  password_hash = excluded.password_hash,
+  is_owner = true,
+  is_active = true,
+  updated_at = now(),
+  password_updated_at = now();
 
 insert into public.notification_feed (id, sort_order, title, message, time, channel, tone)
 values
@@ -233,6 +342,6 @@ insert into public.notification_settings (
   id, telegram_enabled, bot_token, chat_id, digest_frequency, low_stock_alert, cashier_summary, refund_alert
 )
 values (
-  'default', true, 'demo-telegram-bot-token', 'demo-chat-room-id', 'Real-time', true, true, false
+  'default', true, 'placeholder-telegram-bot-token', 'placeholder-chat-room-id', 'Real-time', true, true, false
 )
 on conflict (id) do nothing;
