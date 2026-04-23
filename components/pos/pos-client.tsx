@@ -8,7 +8,6 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { appendCashierInvoice } from "@/lib/cashier-invoice-storage";
 import type { Product, ProductCategory } from "@/lib/mock-data";
 import { cn, formatCurrency } from "@/lib/utils";
 
@@ -96,7 +95,7 @@ export function PosClient({
       if (existing) {
         if (existing.quantity >= product.stock) {
           toast.warning(`Stok ${product.name} habis untuk transaksi ini.`, {
-            description: `Maksimal ${product.stock} item bisa dimasukkan ke keranjang demo.`,
+            description: `Maksimal ${product.stock} item bisa dimasukkan ke keranjang saat ini.`,
           });
           return current;
         }
@@ -167,31 +166,10 @@ export function PosClient({
         return;
       }
 
-      const payload = (await response.json()) as { mode: "demo" | "supabase"; orderNumber: string; createdAt: string };
-
-      appendCashierInvoice({
-        id: payload.orderNumber,
-        orderNumber: payload.orderNumber,
-        createdAt: payload.createdAt,
-        items: cart.map((item) => ({
-          productId: item.id,
-          productName: item.name,
-          unitPrice: item.price,
-          quantity: item.quantity,
-          lineTotal: item.price * item.quantity,
-        })),
-        subtotal,
-        tax,
-        total,
-        cashierName: payload.mode === "supabase" ? "Kasir Online" : "Kasir Demo",
-        paymentMethod,
-      });
+      const payload = (await response.json()) as { orderNumber: string; createdAt: string };
 
       toast.success(`Pembayaran ${paymentMethod.toUpperCase()} berhasil diproses.`, {
-        description:
-          payload.mode === "supabase"
-            ? `Order senilai ${formatCurrency(total)} tersimpan ke Supabase dan keranjang direset.`
-            : `Pesanan demo senilai ${formatCurrency(total)} telah ditutup dan keranjang direset.`,
+        description: `Order ${payload.orderNumber} senilai ${formatCurrency(total)} tersimpan ke database dan keranjang direset.`,
       });
       setCart([]);
     })();
@@ -361,7 +339,7 @@ export function PosClient({
           ) : (
             <div className="rounded-[var(--radius-soft)] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.6)] p-6 text-center">
               <p className="text-base font-medium text-[var(--ink)]">Keranjang masih kosong</p>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Pilih menu dari panel kiri untuk memulai transaksi demo.</p>
+              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Pilih menu dari panel kiri untuk memulai transaksi.</p>
             </div>
           )}
         </div>

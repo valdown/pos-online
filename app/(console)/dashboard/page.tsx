@@ -32,8 +32,15 @@ export default async function DashboardPage() {
         />
 
         <section className="grid gap-2.5 md:grid-cols-2 xl:grid-cols-4">
-          {dashboardStats.map((stat) => (
-            <KpiCard key={stat.title} stat={stat} />
+          {dashboardStats.map((stat, index) => (
+            <KpiCard
+              key={
+                "sort_order" in stat && typeof stat.sort_order === "number"
+                  ? `dashboard-stat-${stat.sort_order}-${index}`
+                  : `dashboard-stat-${stat.title}-${index}`
+              }
+              stat={stat}
+            />
           ))}
         </section>
 

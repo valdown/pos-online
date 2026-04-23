@@ -57,7 +57,7 @@ export function PopularItemsChart({ data }: { data: PopularItem[] }) {
             <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
               <Pie data={visibleItems} dataKey="share" nameKey="name" cx="50%" cy="50%" innerRadius={30} outerRadius={46} paddingAngle={3}>
                 {visibleItems.map((item, index) => (
-                  <Cell key={item.name} fill={chartColors[index % chartColors.length]} />
+                  <Cell key={`${item.name}-${index}`} fill={chartColors[index % chartColors.length]} />
                 ))}
               </Pie>
               <Tooltip
@@ -74,7 +74,7 @@ export function PopularItemsChart({ data }: { data: PopularItem[] }) {
 
       <ul className="flex flex-col gap-0.75" role="list">
         {visibleItems.map((item, index) => (
-            <li key={item.name} className="grid w-full grid-cols-[minmax(0,1fr)_2.7rem] items-start gap-x-2">
+            <li key={`${item.name}-${index}`} className="grid w-full grid-cols-[minmax(0,1fr)_2.7rem] items-start gap-x-2">
               <div className="flex min-w-0 items-start gap-1.75">
               <span
                 className="mt-1 size-1.5 shrink-0 rounded-full"
