@@ -8,6 +8,14 @@ export function getSupabasePublishableKey() {
   return process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 }
 
+export function getSupabaseSecretKey() {
+  return process.env.SUPABASE_SECRET_KEY ?? "";
+}
+
 export function hasSupabaseEnv() {
   return Boolean(getSupabaseUrl() && getSupabasePublishableKey());
+}
+
+export function hasSupabaseAdminEnv() {
+  return Boolean(getSupabaseUrl() && getSupabaseSecretKey());
 }
