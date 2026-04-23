@@ -1,22 +1,18 @@
-export const DEMO_SESSION_COOKIE = "coffee-demo-session";
-
-export const DEMO_CREDENTIALS = {
-  username: "owner",
-  password: "coffeebean",
-} as const;
+export const APP_SESSION_COOKIE = "coffee-internal-session";
+export const BOOTSTRAP_OWNER_EMAIL = "owner@coffeebean.local";
 
 export type AppShellUser = {
   initials: string;
   name: string;
   role: string;
   subtitle: string;
-  modeLabel: "Demo" | "Supabase";
+  modeLabel: "Internal";
 };
 
-export const DEMO_APP_USER: AppShellUser = {
+export const DEFAULT_APP_USER: AppShellUser = {
   initials: "AN",
   name: "Aa Nden",
   role: "Owner",
-  subtitle: "coffee-bean.local",
-  modeLabel: "Demo",
+  subtitle: BOOTSTRAP_OWNER_EMAIL,
+  modeLabel: "Internal",
 };

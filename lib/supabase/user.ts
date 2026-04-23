@@ -1,46 +1,13 @@
 import "server-only";
 
-import { DEMO_APP_USER, type AppShellUser } from "@/lib/auth";
-import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { cookies } from "next/headers";
 
-function initialsFromName(name: string) {
-  return name
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("") || "CB";
-}
+import { APP_SESSION_COOKIE, DEFAULT_APP_USER, type AppShellUser } from "@/lib/auth";
+import { resolveInternalSessionUser } from "@/lib/internal-auth";
 
 export async function getCurrentAppUser(): Promise<AppShellUser> {
-  const supabase = await createServerSupabaseClient();
+  const cookieStore = await cookies();
+  const session = await resolveInternalSessionUser(cookieStore.get(APP_SESSION_COOKIE)?.value ?? null);
 
-  if (!supabase) {
-    return DEMO_APP_USER;
-  }
-
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-
-  if (!user) {
-    return DEMO_APP_USER;
-  }
-
-  const nameFromMeta =
-    typeof user.user_metadata.full_name === "string"
-      ? user.user_metadata.full_name
-      : typeof user.user_metadata.name === "string"
-        ? user.user_metadata.name
-        : user.email?.split("@")[0] ?? "Coffee Bean User";
-
-  const roleFromMeta = typeof user.user_metadata.role === "string" ? user.user_metadata.role : "Authenticated";
-
-  return {
-    initials: initialsFromName(nameFromMeta),
-    name: nameFromMeta,
-    role: roleFromMeta,
-    subtitle: user.email ?? "supabase-user",
-    modeLabel: "Supabase",
-  };
+  return session ?? DEFAULT_APP_USER;
 }

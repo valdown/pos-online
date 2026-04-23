@@ -1,9 +1,8 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { DEMO_SESSION_COOKIE } from "@/lib/auth";
-import { hasSupabaseEnv } from "@/lib/supabase/config";
-import { refreshSupabaseSession } from "@/lib/supabase/proxy";
+import { APP_SESSION_COOKIE } from "@/lib/auth";
+import { resolveInternalSessionUser, touchInternalSession } from "@/lib/internal-auth";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -17,37 +16,29 @@ export async function proxy(request: NextRequest) {
     return NextResponse.next();
   }
 
-  if (hasSupabaseEnv()) {
-    const { response, user } = await refreshSupabaseSession(request);
-
-    if (pathname === "/login") {
-      if (user) {
-        return NextResponse.redirect(new URL("/dashboard", request.url));
-      }
-
-      return response;
-    }
-
-    if (!user) {
-      return NextResponse.redirect(new URL("/login", request.url));
-    }
-
-    return response;
-  }
-
-  const isLoggedIn = request.cookies.get(DEMO_SESSION_COOKIE)?.value === "active";
+  const sessionCookie = request.cookies.get(APP_SESSION_COOKIE)?.value ?? null;
+  const session = await resolveInternalSessionUser(sessionCookie);
 
   if (pathname === "/login") {
-    if (isLoggedIn) {
+    if (session) {
+      void touchInternalSession(session);
       return NextResponse.redirect(new URL("/dashboard", request.url));
     }
 
     return NextResponse.next();
   }
 
-  if (!isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", request.url));
+  if (!session) {
+    const response = NextResponse.redirect(new URL("/login", request.url));
+
+    if (sessionCookie) {
+      response.cookies.set(APP_SESSION_COOKIE, "", { path: "/", maxAge: 0 });
+    }
+
+    return response;
   }
+
+  void touchInternalSession(session);
 
   return NextResponse.next();
 }
