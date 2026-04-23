@@ -10,11 +10,10 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { DEMO_CREDENTIALS, DEMO_SESSION_COOKIE } from "@/lib/auth";
-import { getBrowserSupabaseClient } from "@/lib/supabase/client";
+import { BOOTSTRAP_OWNER_EMAIL } from "@/lib/auth";
 
 const loginSchema = z.object({
-  username: z.string().min(1, "Username wajib diisi."),
+  email: z.string().email("Email wajib valid."),
   password: z.string().min(1, "Kata sandi wajib diisi."),
 });
 
@@ -24,48 +23,34 @@ export function LoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const supabaseClient = getBrowserSupabaseClient();
-  const usesSupabase = Boolean(supabaseClient);
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      username: DEMO_CREDENTIALS.username,
-      password: DEMO_CREDENTIALS.password,
+      email: BOOTSTRAP_OWNER_EMAIL,
+      password: "",
     },
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
-    if (supabaseClient) {
-      const { error } = await supabaseClient.auth.signInWithPassword({
-        email: values.username,
-        password: values.password,
-      });
+    const response = await fetch("/api/auth/login", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(values),
+    });
 
-      if (error) {
-        setAuthError(error.message || "Login Supabase gagal. Pastikan email dan password benar.");
-        return;
-      }
-
-      setAuthError(null);
-      toast.success("Login Supabase berhasil.", {
-        description: "Session tersimpan dan dashboard siap dipakai.",
-      });
-      router.push("/dashboard");
-      router.refresh();
-      return;
-    }
-
-    const validCredentials =
-      values.username === DEMO_CREDENTIALS.username && values.password === DEMO_CREDENTIALS.password;
-
-    if (!validCredentials) {
-      setAuthError("Demo login menggunakan kredensial owner / coffeebean.");
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      setAuthError(payload?.error ?? "Login internal gagal. Periksa email dan kata sandi owner.");
       return;
     }
 
     setAuthError(null);
-    document.cookie = `${DEMO_SESSION_COOKIE}=active; path=/; max-age=604800; samesite=lax`;
+    toast.success("Login internal berhasil.", {
+      description: "Session owner aktif dan dashboard siap dipakai.",
+    });
     router.push("/dashboard");
     router.refresh();
   });
@@ -79,24 +64,22 @@ export function LoginForm() {
       className="space-y-5"
     >
       <div className="space-y-2">
-        <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[var(--coffee-600)]">{usesSupabase ? "Supabase auth" : "Demo akses"}</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.26em] text-[var(--coffee-600)]">Owner access</p>
         <h2 className="font-display text-5xl leading-none text-[var(--coffee-900)]">Point of Sale</h2>
         <p className="text-sm leading-6 text-[var(--muted)]">
-          {usesSupabase
-            ? "Masuk memakai email dan password akun Supabase yang kamu buat nanti."
-            : "Masuk ke dashboard operasional untuk memantau penjualan, kasir aktif, dan pengaturan toko."}
+          Masuk ke dashboard operasional untuk memantau penjualan, kasir aktif, dan pengaturan toko lewat akun owner internal.
         </p>
       </div>
 
       <div className="space-y-4">
         <label className="space-y-2 text-sm font-medium text-[var(--ink)]">
-          <span>{usesSupabase ? "Email" : "Username"}</span>
+          <span>Email</span>
           <div className="relative">
             <UserRound className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[var(--muted)]" />
-            <Input data-testid="login-username" className="pl-11" {...form.register("username")} placeholder={usesSupabase ? "owner@coffeebean.id" : "username"} />
+            <Input data-testid="login-username" className="pl-11" {...form.register("email")} placeholder="owner@coffeebean.local" />
           </div>
-          {form.formState.errors.username ? (
-            <p className="text-sm text-[var(--coffee-700)]">{form.formState.errors.username.message}</p>
+          {form.formState.errors.email ? (
+            <p className="text-sm text-[var(--coffee-700)]">{form.formState.errors.email.message}</p>
           ) : null}
         </label>
 
@@ -127,15 +110,7 @@ export function LoginForm() {
       </div>
 
       <div className="rounded-[var(--radius-soft)] bg-[var(--surface-soft)] p-4 text-sm text-[var(--muted)]">
-        {usesSupabase ? (
-          <>
-            Isi dengan email/password user Supabase. Kalau env belum diisi, form ini otomatis kembali ke mode demo.
-          </>
-        ) : (
-          <>
-            Gunakan <span className="font-semibold text-[var(--coffee-800)]">owner</span> / <span className="font-semibold text-[var(--coffee-800)]">coffeebean</span> untuk masuk.
-          </>
-        )}
+        Gunakan akun owner bootstrap <span className="font-semibold text-[var(--coffee-800)]">{BOOTSTRAP_OWNER_EMAIL}</span>. Password awal mengikuti SQL bootstrap owner dan sebaiknya segera diganti setelah login pertama.
       </div>
 
       {authError ? <p className="text-sm font-medium text-[var(--coffee-700)]">{authError}</p> : null}

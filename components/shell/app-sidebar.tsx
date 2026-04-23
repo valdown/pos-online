@@ -20,8 +20,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import type { AppShellUser } from "@/lib/auth";
-import { DEMO_SESSION_COOKIE } from "@/lib/auth";
-import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 import { cn } from "@/lib/utils";
 
 const links = [
@@ -37,17 +35,9 @@ const links = [
 export function AppSidebar({ currentUser }: { currentUser: AppShellUser }) {
   const pathname = usePathname();
   const router = useRouter();
-  const supabaseClient = getBrowserSupabaseClient();
 
   const handleLogout = async () => {
-    if (supabaseClient) {
-      await supabaseClient.auth.signOut();
-      router.push("/login");
-      router.refresh();
-      return;
-    }
-
-    document.cookie = `${DEMO_SESSION_COOKIE}=; path=/; max-age=0`;
+    await fetch("/api/auth/logout", { method: "POST" });
     router.push("/login");
     router.refresh();
   };
@@ -70,7 +60,7 @@ export function AppSidebar({ currentUser }: { currentUser: AppShellUser }) {
           <div className="mt-4 flex items-end justify-between gap-3 xl:mt-2.5 xl:gap-2.5">
             <div className="space-y-1 xl:space-y-0.5">
               <p className="text-3xl font-semibold tracking-[-0.04em] text-[var(--ink)] xl:text-[1.85rem]">23.42</p>
-              <p className="text-sm text-[var(--muted)] xl:text-[13px] xl:leading-5">{currentUser.modeLabel === "Supabase" ? "Supabase session aktif" : "Counter A - shift sore"}</p>
+              <p className="text-sm text-[var(--muted)] xl:text-[13px] xl:leading-5">Internal owner session aktif</p>
             </div>
             <div className="rounded-full bg-white/70 p-2 text-[var(--coffee-700)] xl:p-1.5">
               <Sparkles className="size-4 xl:size-3.5" />
