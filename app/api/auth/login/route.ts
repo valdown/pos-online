@@ -25,27 +25,13 @@ type StaffAccountRow = {
   access: string;
   phone: string;
   email: string | null;
-  staff_credentials:
-    | {
-        password_hash: string;
-        is_active: boolean;
-        is_owner: boolean;
-      }
-    | {
-        password_hash: string;
-        is_active: boolean;
-        is_owner: boolean;
-      }[]
-    | null;
 };
 
-function normalizeCredential(credentials: StaffAccountRow["staff_credentials"]) {
-  if (!credentials) {
-    return null;
-  }
-
-  return Array.isArray(credentials) ? credentials[0] ?? null : credentials;
-}
+type StaffCredentialRow = {
+  password_hash: string;
+  is_active: boolean;
+  is_owner: boolean;
+};
 
 export async function POST(request: Request) {
   const admin = createAdminSupabaseClient();
@@ -64,13 +50,15 @@ export async function POST(request: Request) {
 
   const { data, error } = await admin
     .from("staff_members")
-    .select("id, name, role, access, phone, email, staff_credentials(password_hash, is_active, is_owner)")
+    .select("id, name, role, access, phone, email")
     .eq("email", email)
     .maybeSingle<StaffAccountRow>();
 
-  const credentials = normalizeCredential(data?.staff_credentials ?? null);
+  const { data: credentials, error: credentialsError } = data
+    ? await admin.from("staff_credentials").select("password_hash, is_active, is_owner").eq("staff_id", data.id).maybeSingle<StaffCredentialRow>()
+    : { data: null, error: null };
 
-  if (error || !data || !credentials?.is_active || !credentials.is_owner) {
+  if (error || !data || credentialsError || !credentials?.is_active || !credentials.is_owner) {
     return NextResponse.json(
       {
         error:
