@@ -1,3 +1,4 @@
+import { CurrentTimeDisplay } from "@/components/dashboard/current-time-display";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -12,7 +13,7 @@ export default async function StaffPage() {
         eyebrow="Team visibility"
         title="Staf"
         description="Pantau roster, akses sistem, dan status tiap anggota tim dalam tampilan yang mudah dipindai."
-        actions={<Badge variant="accent">{staffMembers.filter((member) => member.status === "Online").length} online</Badge>}
+        actions={<CurrentTimeDisplay />}
       />
 
       <Card className="p-6">

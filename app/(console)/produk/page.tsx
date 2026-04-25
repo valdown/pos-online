@@ -1,3 +1,4 @@
+import { CurrentTimeDisplay } from "@/components/dashboard/current-time-display";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { PageHeader } from "@/components/ui/page-header";
@@ -13,7 +14,7 @@ export default async function ProdukPage() {
         eyebrow="Inventory overview"
         title="Produk"
         description="Daftar produk tersusun rapi untuk memantau kategori, harga, stok, dan laju penjualan harian."
-        actions={<Badge variant="neutral">{products.length} menu aktif</Badge>}
+        actions={<CurrentTimeDisplay />}
       />
 
       <Card className="p-6">

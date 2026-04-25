@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 
+import { CurrentTimeDisplay } from "@/components/dashboard/current-time-display";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useSettings } from "@/components/providers/settings";
@@ -42,7 +43,7 @@ export default function NotificationsPage() {
               ? "Supabase terdeteksi, tetapi pembacaan atau sinkronisasi terakhir gagal. Feed dan form sementara memakai fallback lokal agar workflow tetap jalan."
               : "Atur broadcast alert penting dengan form lokal yang tersimpan di browser ini untuk preview workflow notifikasi operasional."
         }
-        actions={<Badge variant="success">{notificationSettings.telegramEnabled ? "Telegram tersambung" : "Telegram nonaktif"}</Badge>}
+        actions={<CurrentTimeDisplay />}
       />
 
       <div className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">

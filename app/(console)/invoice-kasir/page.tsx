@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { CurrentTimeDisplay } from "@/components/dashboard/current-time-display";
 import { PageHeader } from "@/components/ui/page-header";
 import type { CashierInvoice } from "@/lib/mock-data";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
@@ -60,12 +61,7 @@ export default async function InvoiceKasirPage() {
         eyebrow="Cashier receipts"
         title="Invoice Kasir"
         description="Rekap hasil transaksi dari POS Kasir. Tiap checkout yang selesai akan masuk ke daftar invoice ini."
-        actions={
-          <>
-            <Badge variant="accent">{totalTransactions} transaksi</Badge>
-            <Badge variant="neutral">{formatCurrency(totalRevenue)}</Badge>
-          </>
-        }
+        actions={<CurrentTimeDisplay />}
       />
 
       <Card className="p-6">
