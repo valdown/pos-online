@@ -1,7 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { CreditCard, Minus, Plus, ReceiptText, RotateCcw, Search, ShoppingBag, Wallet, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { CreditCard, Minus, Plus, ReceiptText, RotateCcw, Search, Wallet, X } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -9,20 +9,20 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { Product, ProductCategory } from "@/lib/mock-data";
+import { getEnabledPaymentMethods, type PaymentMethodId, type PaymentMethodSetting } from "@/lib/payment-methods";
 import { cn, formatCurrency } from "@/lib/utils";
 
 type CartItem = Product & { quantity: number };
-type PaymentMethod = "cash" | "debit" | "qris";
 
 type ProductVisual = {
   imageUrl: string;
 };
 
-const paymentOptions: Array<{ id: PaymentMethod; label: string; icon: typeof Wallet }> = [
-  { id: "cash", label: "Tunai", icon: Wallet },
-  { id: "debit", label: "Debit", icon: CreditCard },
-  { id: "qris", label: "QRIS", icon: ReceiptText },
-];
+const paymentMethodIcons: Record<PaymentMethodId, typeof Wallet> = {
+  cash: Wallet,
+  debit: CreditCard,
+  qris: ReceiptText,
+};
 
 const productVisuals: Record<string, ProductVisual> = {
   "caramel-macchiato": {
@@ -63,15 +63,24 @@ export function PosClient({
   products,
   categories,
   taxRate,
+  paymentMethods,
 }: {
   products: Product[];
   categories: ProductCategory[];
   taxRate: number;
+  paymentMethods: PaymentMethodSetting[];
 }) {
   const [activeCategory, setActiveCategory] = useState<ProductCategory>("Semua");
   const [searchQuery, setSearchQuery] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
+  const enabledPaymentMethods = useMemo(() => getEnabledPaymentMethods(paymentMethods), [paymentMethods]);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethodId>(enabledPaymentMethods[0]?.id ?? "cash");
   const [cart, setCart] = useState<CartItem[]>([]);
+
+  useEffect(() => {
+    if (!enabledPaymentMethods.some((method) => method.id === paymentMethod)) {
+      setPaymentMethod(enabledPaymentMethods[0]?.id ?? "cash");
+    }
+  }, [enabledPaymentMethods, paymentMethod]);
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -168,7 +177,9 @@ export function PosClient({
 
       const payload = (await response.json()) as { orderNumber: string; createdAt: string };
 
-      toast.success(`Pembayaran ${paymentMethod.toUpperCase()} berhasil diproses.`, {
+      const activePaymentMethodLabel = paymentMethods.find((method) => method.id === paymentMethod)?.label ?? paymentMethod.toUpperCase();
+
+      toast.success(`Pembayaran ${activePaymentMethodLabel} berhasil diproses.`, {
         description: `Order ${payload.orderNumber} senilai ${formatCurrency(total)} tersimpan ke database dan keranjang direset.`,
       });
       setCart([]);
@@ -290,65 +301,64 @@ export function PosClient({
         </div>
       </div>
 
-      <Card className="flex h-fit flex-col p-5 md:p-6 xl:sticky xl:top-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <Badge variant="neutral" className="mb-3 w-fit">Keranjang</Badge>
-            <h2 className="text-2xl font-semibold tracking-[-0.03em] text-[var(--ink)]">Ringkasan Pesanan</h2>
-          </div>
-          <div className="flex size-12 items-center justify-center rounded-[1.1rem] bg-[rgba(198,122,63,0.14)] text-[var(--coffee-700)]">
-            <ShoppingBag className="size-5" />
-          </div>
+      <Card className="flex h-fit flex-col p-5 md:p-6 xl:sticky xl:top-6 xl:h-[calc(100vh-8rem)] xl:max-h-[calc(100vh-8rem)] xl:min-h-0">
+        <div className="shrink-0">
+          <Badge variant="neutral" className="mb-3 w-fit">Keranjang</Badge>
         </div>
 
-        <div className="mt-6 space-y-3">
-          {cart.length ? (
-            cart.map((item) => (
-              <div key={item.id} data-testid={`cart-item-${item.id}`} className="rounded-[var(--radius-soft)] bg-[var(--surface-soft)] p-4">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-[var(--ink)]">{item.name}</p>
-                    <p className="text-sm text-[var(--muted)]">{formatCurrency(item.price)}</p>
+        <div className="mt-6 min-h-0 flex-1 overflow-hidden">
+          <div className="h-full space-y-2.5 overflow-y-auto pr-1">
+            {cart.length ? (
+              cart.map((item) => (
+                <div
+                  key={item.id}
+                  data-testid={`cart-item-${item.id}`}
+                  className="flex items-center justify-between gap-3 rounded-[var(--radius-soft)] border border-[var(--line)] bg-white/80 px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]"
+                >
+                  <div className="min-w-0 space-y-1 pr-2">
+                    <p className="truncate text-sm font-semibold text-[var(--ink)]">{item.name}</p>
+                    <p className="text-sm font-semibold text-[var(--coffee-500)]">{formatCurrency(item.price)}</p>
                   </div>
-                  <p className="text-sm font-semibold text-[var(--coffee-700)]">{formatCurrency(item.price * item.quantity)}</p>
-                </div>
-                <div className="mt-4 flex items-center justify-between gap-3">
-                  <p className="text-sm text-[var(--muted)]">{item.category}</p>
-                  <div className="flex items-center gap-2 rounded-full bg-white px-2 py-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.6)]">
+                  <div className="flex shrink-0 items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--surface-soft)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
                     <button
                       data-testid={`cart-decrease-${item.id}`}
                       type="button"
                       onClick={() => updateQuantity(item.id, -1)}
-                      className="flex size-8 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--coffee-700)]"
+                      className="flex size-7 items-center justify-center rounded-full bg-white text-[var(--muted)] transition hover:text-[var(--coffee-700)]"
+                      aria-label={`Kurangi jumlah ${item.name}`}
                     >
-                      <Minus className="size-4" />
+                      <Minus className="size-3.5" />
                     </button>
-                    <span className="min-w-7 text-center text-sm font-semibold text-[var(--ink)]">{item.quantity}</span>
+                    <span className="min-w-6 text-center text-sm font-semibold text-[var(--ink)]">{item.quantity}</span>
                     <button
                       data-testid={`cart-increase-${item.id}`}
                       type="button"
                       onClick={() => updateQuantity(item.id, 1)}
-                      className="flex size-8 items-center justify-center rounded-full text-[var(--muted)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--coffee-700)]"
+                      className="flex size-7 items-center justify-center rounded-full bg-white text-[var(--muted)] transition hover:text-[var(--coffee-700)]"
+                      aria-label={`Tambah jumlah ${item.name}`}
                     >
-                      <Plus className="size-4" />
+                      <Plus className="size-3.5" />
                     </button>
                   </div>
                 </div>
+              ))
+            ) : (
+              <div className="rounded-[var(--radius-soft)] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.6)] p-6 text-center">
+                <p className="text-base font-medium text-[var(--ink)]">Keranjang masih kosong</p>
+                <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Pilih menu dari panel kiri untuk memulai transaksi.</p>
               </div>
-            ))
-          ) : (
-            <div className="rounded-[var(--radius-soft)] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.6)] p-6 text-center">
-              <p className="text-base font-medium text-[var(--ink)]">Keranjang masih kosong</p>
-              <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Pilih menu dari panel kiri untuk memulai transaksi.</p>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
-        <div className="mt-6 space-y-4 rounded-[var(--radius-soft)] bg-[rgba(255,248,242,0.86)] p-4">
+        <div className="mt-6 shrink-0 space-y-4 rounded-[var(--radius-soft)] border border-[var(--line)] bg-white/70 p-4">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">Metode Pembayaran</p>
-            <div className="grid gap-2 sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3">
-              {paymentOptions.map(({ id, label, icon: Icon }) => (
+            <div className={cn("grid gap-2", enabledPaymentMethods.length === 1 ? "grid-cols-1" : enabledPaymentMethods.length === 2 ? "grid-cols-2" : "sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3")}>
+              {enabledPaymentMethods.map(({ id, label }) => {
+                const Icon = paymentMethodIcons[id];
+
+                return (
                 <button
                   key={id}
                   type="button"
@@ -364,7 +374,8 @@ export function PosClient({
                   <Icon className="size-4" />
                   {label}
                 </button>
-              ))}
+                );
+              })}
             </div>
           </div>
 
@@ -384,8 +395,8 @@ export function PosClient({
           </div>
         </div>
 
-        <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-          <Button data-testid="checkout-button" type="button" size="lg" onClick={handleCheckout} disabled={!cart.length}>
+        <div className="mt-6 shrink-0 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+          <Button data-testid="checkout-button" type="button" size="lg" onClick={handleCheckout} disabled={!cart.length || enabledPaymentMethods.length === 0}>
             Tutup Transaksi
           </Button>
           <Button data-testid="reset-cart-button" type="button" size="lg" variant="outline" onClick={resetCart} disabled={!cart.length}>

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 
 import { APP_SESSION_COOKIE } from "@/lib/auth";
 import { resolveInternalSessionUser } from "@/lib/internal-auth";
+import { getEnabledPaymentMethods, normalizePaymentMethods, type PaymentMethodId, type PaymentMethodSetting } from "@/lib/payment-methods";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 type OrderPayload = {
@@ -17,6 +18,10 @@ type OrderPayload = {
     quantity: number;
     lineTotal: number;
   }>;
+};
+
+type AppSettingsPaymentRow = {
+  payment_methods: PaymentMethodSetting[] | null;
 };
 
 export async function POST(request: Request) {
@@ -34,6 +39,13 @@ export async function POST(request: Request) {
 
   if (!currentUser) {
     return NextResponse.json({ error: "Session internal tidak ditemukan. Login ulang dulu." }, { status: 401 });
+  }
+
+  const { data: appSettings } = await supabase.from("app_settings").select("payment_methods").eq("id", "default").maybeSingle<AppSettingsPaymentRow>();
+  const enabledPaymentMethodIds = getEnabledPaymentMethods(normalizePaymentMethods(appSettings?.payment_methods)).map((method) => method.id);
+
+  if (!enabledPaymentMethodIds.includes(payload.paymentMethod as PaymentMethodId)) {
+    return NextResponse.json({ error: "Metode pembayaran tidak aktif atau tidak dikenali." }, { status: 400 });
   }
 
   const { data: order, error: orderError } = await supabase
