@@ -44,23 +44,23 @@ export default async function DashboardPage() {
           ))}
         </section>
 
-        <section className="grid gap-1.5 xl:grid-cols-[minmax(0,1.36fr)_minmax(17.5rem,0.78fr)] xl:items-stretch 2xl:grid-cols-[minmax(0,1.48fr)_minmax(19rem,0.7fr)]">
-          <Card className="flex h-full flex-col p-2 sm:p-2.5">
-            <CardHeader className="space-y-1 pb-1">
+        <section className="grid gap-3 xl:grid-cols-[minmax(0,1.34fr)_minmax(20.5rem,0.86fr)] xl:items-stretch 2xl:grid-cols-[minmax(0,1.4fr)_minmax(22rem,0.82fr)]">
+          <Card className="flex h-full min-h-[18.5rem] flex-col px-4 py-3 sm:min-h-[19.25rem] sm:px-5 sm:py-4 xl:min-h-[19.75rem]">
+            <CardHeader className="space-y-1.5 px-0 pb-2 sm:pb-2.5">
               <CardTitle>Grafik Pendapatan</CardTitle>
-              <CardDescription className="text-[12px] leading-[1.125rem]">Pergerakan omzet tujuh hari terakhir, dipuncaki traffic akhir pekan.</CardDescription>
+              <CardDescription className="max-w-[38rem] text-[12px] leading-[1.2rem] sm:text-[12.5px]">Pergerakan omzet tujuh hari terakhir untuk membaca ritme penjualan harian dengan lebih cepat.</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-1 items-stretch space-y-0">
+            <CardContent className="flex flex-1 items-stretch space-y-0 px-0 pb-0 pt-1">
               <RevenueChart data={revenueSeries} />
             </CardContent>
           </Card>
 
-          <Card className="flex h-full w-full flex-col p-2 sm:p-2.5 xl:max-w-[22rem] xl:justify-self-end">
-            <CardHeader className="space-y-1 pb-0.5">
+          <Card className="flex h-full min-h-[18.5rem] w-full flex-col px-4 py-3 sm:min-h-[19.25rem] sm:px-5 sm:py-4 xl:min-h-[19.75rem]">
+            <CardHeader className="space-y-1.5 px-0 pb-2 sm:pb-2.5">
               <CardTitle>Menu Terlaris</CardTitle>
-              <CardDescription className="text-[12px] leading-[1.125rem]">Kontributor transaksi terbesar untuk kombo minuman dan makanan.</CardDescription>
+              <CardDescription className="text-[12px] leading-[1.2rem] sm:text-[12.5px]">Lima menu dengan kontribusi penjualan terbesar pada periode aktif.</CardDescription>
             </CardHeader>
-            <CardContent className="flex flex-1 items-stretch space-y-0">
+            <CardContent className="flex flex-1 items-stretch space-y-0 px-0 pb-0 pt-1">
               <PopularItemsChart data={popularItems} />
             </CardContent>
           </Card>
