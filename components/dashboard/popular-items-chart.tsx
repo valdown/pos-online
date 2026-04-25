@@ -50,12 +50,12 @@ export function PopularItemsChart({ data }: { data: PopularItem[] }) {
   const visibleItems = getVisiblePopularItems(data);
 
   return (
-    <div className="flex h-full w-full flex-col gap-1">
-      <div className="grid w-full min-h-[92px] place-items-center sm:min-h-[100px]">
-        <div className="mx-auto aspect-square w-full max-w-[116px] sm:max-w-[122px]">
+    <div className="flex h-full w-full flex-col gap-3">
+      <div className="grid w-full min-h-[128px] place-items-center sm:min-h-[136px] xl:min-h-[144px]">
+        <div className="mx-auto aspect-square w-full max-w-[132px] sm:max-w-[142px]">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
-              <Pie data={visibleItems} dataKey="share" nameKey="name" cx="50%" cy="50%" innerRadius={30} outerRadius={46} paddingAngle={3}>
+              <Pie data={visibleItems} dataKey="share" nameKey="name" cx="50%" cy="50%" innerRadius={34} outerRadius={54} paddingAngle={2.5} strokeWidth={0}>
                 {visibleItems.map((item, index) => (
                   <Cell key={`${item.name}-${index}`} fill={chartColors[index % chartColors.length]} />
                 ))}
@@ -72,21 +72,21 @@ export function PopularItemsChart({ data }: { data: PopularItem[] }) {
         </div>
       </div>
 
-      <ul className="flex flex-col gap-0.75" role="list">
+      <ul className="flex flex-col gap-0.5 pt-0.5" role="list">
         {visibleItems.map((item, index) => (
-            <li key={`${item.name}-${index}`} className="grid w-full grid-cols-[minmax(0,1fr)_2.7rem] items-start gap-x-2">
-              <div className="flex min-w-0 items-start gap-1.75">
+          <li key={`${item.name}-${index}`} className="grid w-full grid-cols-[minmax(0,1fr)_2.5rem] items-center gap-x-3 border-t border-[rgba(126,102,82,0.12)] py-2 first:border-t-0 first:pt-0 last:pb-0">
+            <div className="flex min-w-0 items-center gap-2">
               <span
-                className="mt-1 size-1.5 shrink-0 rounded-full"
+                className="size-2.5 shrink-0 rounded-full"
                 style={{ backgroundColor: chartColors[index % chartColors.length] }}
                 aria-hidden="true"
               />
               <div className="min-w-0 space-y-0.5">
-                <p className="text-[0.84rem] font-medium leading-snug text-[var(--ink)] sm:text-[0.88rem]">{item.name}</p>
-                <p className="text-[10px] leading-snug text-[var(--muted)] sm:text-[0.75rem]">{item.orders} item terjual</p>
+                <p className="text-[0.92rem] font-medium leading-[1.2rem] text-[var(--ink)]">{item.name}</p>
+                <p className="text-[11px] leading-[1rem] text-[var(--muted)]">{item.share}% kontribusi</p>
               </div>
             </div>
-            <p className="pt-0.5 text-right text-[10px] font-semibold tabular-nums text-[var(--coffee-700)] sm:text-[0.75rem]">{item.share}%</p>
+            <p className="text-right text-[1.05rem] font-semibold tabular-nums text-[var(--coffee-700)]">{item.orders}</p>
           </li>
         ))}
       </ul>
