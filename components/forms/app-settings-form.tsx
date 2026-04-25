@@ -25,6 +25,13 @@ const settingsSchema = z.object({
   bankAccountNumber: z.string().min(1, "Nomor rekening wajib diisi."),
   openingCash: z.coerce.number().min(0),
   autoPrintReceipt: z.boolean(),
+  paymentMethods: z.array(
+    z.object({
+      id: z.enum(["cash", "debit", "qris"]),
+      label: z.string(),
+      enabled: z.boolean(),
+    })
+  ),
 });
 
 type SettingsValues = z.infer<typeof settingsSchema>;
