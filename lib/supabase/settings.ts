@@ -1,4 +1,5 @@
 import type { AppSettings, NotificationSettings } from "@/lib/mock-data";
+import { normalizePaymentMethods, type PaymentMethodSetting } from "@/lib/payment-methods";
 import { SUPABASE_SETTINGS_ROW_ID } from "@/lib/supabase/config";
 
 export type AppSettingsRow = {
@@ -14,6 +15,7 @@ export type AppSettingsRow = {
   bank_account_number: string;
   opening_cash: number;
   auto_print_receipt: boolean;
+  payment_methods: PaymentMethodSetting[] | null;
 };
 
 export type NotificationSettingsRow = {
@@ -40,6 +42,7 @@ export function mapAppSettingsRowToModel(row: AppSettingsRow): AppSettings {
     bankAccountNumber: row.bank_account_number,
     openingCash: row.opening_cash,
     autoPrintReceipt: row.auto_print_receipt,
+    paymentMethods: normalizePaymentMethods(row.payment_methods),
   };
 }
 
@@ -57,6 +60,7 @@ export function mapAppSettingsModelToRow(model: AppSettings): AppSettingsRow {
     bank_account_number: model.bankAccountNumber,
     opening_cash: model.openingCash,
     auto_print_receipt: model.autoPrintReceipt,
+    payment_methods: normalizePaymentMethods(model.paymentMethods),
   };
 }
 

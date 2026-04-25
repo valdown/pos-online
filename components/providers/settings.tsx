@@ -8,6 +8,7 @@ import {
   type AppSettings,
   type NotificationSettings,
 } from "@/lib/mock-data";
+import { normalizePaymentMethods } from "@/lib/payment-methods";
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 import { SUPABASE_SETTINGS_ROW_ID } from "@/lib/supabase/config";
 import {
@@ -52,6 +53,14 @@ function readStoredJson<T>(key: string, fallback: T, legacyKey?: string) {
   }
 }
 
+function normalizeStoredAppSettings(value: AppSettings): AppSettings {
+  return {
+    ...defaultAppSettings,
+    ...value,
+    paymentMethods: normalizePaymentMethods(value?.paymentMethods),
+  };
+}
+
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [appSettings, setAppSettingsState] = useState<AppSettings>(defaultAppSettings);
   const [notificationSettings, setNotificationSettingsState] = useState<NotificationSettings>(defaultNotificationSettings);
@@ -59,7 +68,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [persistenceMode, setPersistenceMode] = useState<SettingsPersistenceMode>(supabaseClient ? "supabase" : "local");
 
   useEffect(() => {
-    const localAppSettings = readStoredJson(APP_SETTINGS_STORAGE_KEY, defaultAppSettings);
+    const localAppSettings = normalizeStoredAppSettings(readStoredJson(APP_SETTINGS_STORAGE_KEY, defaultAppSettings));
     const localNotificationSettings = readStoredJson(NOTIFICATION_SETTINGS_STORAGE_KEY, defaultNotificationSettings);
 
     setAppSettingsState(localAppSettings);
@@ -88,7 +97,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (appData) {
-        const nextAppSettings = mapAppSettingsRowToModel(appData);
+        const nextAppSettings = normalizeStoredAppSettings(mapAppSettingsRowToModel(appData));
         setAppSettingsState(nextAppSettings);
         window.localStorage.setItem(APP_SETTINGS_STORAGE_KEY, JSON.stringify(nextAppSettings));
       }
@@ -109,10 +118,11 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
       notificationSettings,
       persistenceMode,
       setAppSettings: async (settings) => {
-        setAppSettingsState(settings);
-        window.localStorage.setItem(APP_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+        const normalizedSettings = normalizeStoredAppSettings(settings);
+        setAppSettingsState(normalizedSettings);
+        window.localStorage.setItem(APP_SETTINGS_STORAGE_KEY, JSON.stringify(normalizedSettings));
         if (supabaseClient) {
-          const { error } = await supabaseClient.from("app_settings").upsert(mapAppSettingsModelToRow(settings));
+          const { error } = await supabaseClient.from("app_settings").upsert(mapAppSettingsModelToRow(normalizedSettings));
 
           if (error) {
             setPersistenceMode("supabase-fallback");

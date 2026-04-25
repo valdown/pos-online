@@ -80,6 +80,9 @@ export type NotificationSettings = {
   refundAlert: boolean;
 };
 
+export type PaymentMethodId = import("@/lib/payment-methods").PaymentMethodId;
+export type PaymentMethodSetting = import("@/lib/payment-methods").PaymentMethodSetting;
+
 export type AppSettings = {
   storeName: string;
   branchName: string;
@@ -92,6 +95,7 @@ export type AppSettings = {
   bankAccountNumber: string;
   openingCash: number;
   autoPrintReceipt: boolean;
+  paymentMethods: PaymentMethodSetting[];
 };
 
 export const navigationItems = [
@@ -349,6 +353,11 @@ export const defaultAppSettings: AppSettings = {
   bankAccountNumber: "112233445566",
   openingCash: 750000,
   autoPrintReceipt: true,
+  paymentMethods: [
+    { id: "cash", label: "Tunai", enabled: true },
+    { id: "debit", label: "Debit", enabled: true },
+    { id: "qris", label: "QRIS", enabled: true },
+  ],
 };
 
 export const cashierSnapshot = {

@@ -15,7 +15,8 @@ insert into public.app_settings (
   bank_account_name,
   bank_account_number,
   opening_cash,
-  auto_print_receipt
+  auto_print_receipt,
+  payment_methods
 )
 values (
   'default',
@@ -29,9 +30,16 @@ values (
   'PT Coffee Bean Nusantara',
   '112233445566',
   750000,
-  true
+  true,
+  '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb
 )
 on conflict (id) do nothing;
+
+alter table public.app_settings add column if not exists payment_methods jsonb not null default '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb;
+
+update public.app_settings
+set payment_methods = '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb
+where payment_methods is null;
 
 insert into public.notification_settings (
   id,
