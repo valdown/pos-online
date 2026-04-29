@@ -40,9 +40,9 @@ export default function KasirPage() {
   }, []);
 
   const categories = useMemo<ProductCategory[]>(() => {
-    const uniqueCategories = Array.from(new Set(catalog.map((product) => product.category)));
+    const uniqueCategories = Array.from(new Set([...appSettings.menuCategories, ...catalog.map((product) => product.category)]));
     return ["Semua", ...uniqueCategories] as ProductCategory[];
-  }, [catalog]);
+  }, [appSettings.menuCategories, catalog]);
 
   return (
     <PosClient

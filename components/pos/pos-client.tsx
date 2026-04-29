@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { CreditCard, Minus, Plus, ReceiptText, RotateCcw, Search, Wallet, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -23,6 +24,8 @@ const paymentMethodIcons: Record<PaymentMethodId, typeof Wallet> = {
   debit: CreditCard,
   qris: ReceiptText,
 };
+
+const CASH_QUICK_AMOUNTS = [50000, 100000, 150000, 200000, 500000];
 
 const productVisuals: Record<string, ProductVisual> = {
   "caramel-macchiato": {
@@ -75,12 +78,47 @@ export function PosClient({
   const enabledPaymentMethods = useMemo(() => getEnabledPaymentMethods(paymentMethods), [paymentMethods]);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodId>(enabledPaymentMethods[0]?.id ?? "cash");
   const [cart, setCart] = useState<CartItem[]>([]);
+  const [cashDialogOpen, setCashDialogOpen] = useState(false);
+  const [cashPaidInput, setCashPaidInput] = useState("");
+  const [isMounted, setIsMounted] = useState(false);
 
   useEffect(() => {
     if (!enabledPaymentMethods.some((method) => method.id === paymentMethod)) {
       setPaymentMethod(enabledPaymentMethods[0]?.id ?? "cash");
     }
   }, [enabledPaymentMethods, paymentMethod]);
+
+  useEffect(() => {
+    if (paymentMethod !== "cash") {
+      setCashDialogOpen(false);
+      setCashPaidInput("");
+    }
+  }, [paymentMethod]);
+
+  useEffect(() => {
+    setIsMounted(true);
+
+    return () => {
+      setIsMounted(false);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!cashDialogOpen || !isMounted) {
+      return;
+    }
+
+    const previousHtmlOverflow = document.documentElement.style.overflow;
+    const previousBodyOverflow = document.body.style.overflow;
+
+    document.documentElement.style.overflow = "hidden";
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.documentElement.style.overflow = previousHtmlOverflow;
+      document.body.style.overflow = previousBodyOverflow;
+    };
+  }, [cashDialogOpen, isMounted]);
 
   const filteredProducts = useMemo(() => {
     const normalizedQuery = searchQuery.trim().toLowerCase();
@@ -93,9 +131,14 @@ export function PosClient({
     });
   }, [activeCategory, products, searchQuery]);
 
+  const cartItemCount = cart.reduce((count, item) => count + item.quantity, 0);
   const subtotal = cart.reduce((total, item) => total + item.price * item.quantity, 0);
   const tax = Math.round(subtotal * (taxRate / 100));
   const total = subtotal + tax;
+  const hasCashInput = cashPaidInput.trim().length > 0;
+  const cashPaidAmount = hasCashInput ? Number(cashPaidInput) : 0;
+  const cashChangeAmount = hasCashInput ? cashPaidAmount - total : 0;
+  const activePaymentMethodLabel = paymentMethods.find((method) => method.id === paymentMethod)?.label ?? paymentMethod.toUpperCase();
 
   const addToCart = (product: Product) => {
     setCart((current) => {
@@ -141,53 +184,70 @@ export function PosClient({
 
   const resetCart = () => setCart([]);
 
+  const handleCashQuickAmount = (amount: number) => {
+    setCashPaidInput(String(amount));
+  };
+
+  const handleCashInputChange = (value: string) => {
+    const digitsOnly = value.replace(/\D/g, "");
+    setCashPaidInput(digitsOnly);
+  };
+
+  const submitOrder = async () => {
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        paymentMethod,
+        subtotal,
+        tax,
+        total,
+        items: cart.map((item) => ({
+          productId: item.id,
+          productName: item.name,
+          unitPrice: item.price,
+          quantity: item.quantity,
+          lineTotal: item.price * item.quantity,
+        })),
+      }),
+    });
+
+    if (!response.ok) {
+      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+      toast.error("Checkout gagal diproses.", {
+        description: payload?.error ?? "Periksa konfigurasi Supabase dan schema tabel orders kamu.",
+      });
+      return false;
+    }
+
+    const payload = (await response.json()) as { orderNumber: string; createdAt: string };
+
+    toast.success(`Pembayaran ${activePaymentMethodLabel} berhasil diproses.`, {
+      description: `Order ${payload.orderNumber} senilai ${formatCurrency(total)} tersimpan ke database dan keranjang direset.`,
+    });
+    setCart([]);
+    setCashDialogOpen(false);
+    setCashPaidInput("");
+    return true;
+  };
+
   const handleCheckout = () => {
     if (!cart.length) {
       return;
     }
 
-    void (async () => {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          paymentMethod,
-          subtotal,
-          tax,
-          total,
-          items: cart.map((item) => ({
-            productId: item.id,
-            productName: item.name,
-            unitPrice: item.price,
-            quantity: item.quantity,
-            lineTotal: item.price * item.quantity,
-          })),
-        }),
-      });
+    if (paymentMethod === "cash") {
+      setCashDialogOpen(true);
+      return;
+    }
 
-      if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-        toast.error("Checkout gagal diproses.", {
-          description: payload?.error ?? "Periksa konfigurasi Supabase dan schema tabel orders kamu.",
-        });
-        return;
-      }
-
-      const payload = (await response.json()) as { orderNumber: string; createdAt: string };
-
-      const activePaymentMethodLabel = paymentMethods.find((method) => method.id === paymentMethod)?.label ?? paymentMethod.toUpperCase();
-
-      toast.success(`Pembayaran ${activePaymentMethodLabel} berhasil diproses.`, {
-        description: `Order ${payload.orderNumber} senilai ${formatCurrency(total)} tersimpan ke database dan keranjang direset.`,
-      });
-      setCart([]);
-    })();
+    void submitOrder();
   };
 
   return (
-    <div className="grid gap-6 xl:grid-cols-[1.5fr_0.95fr]">
+    <div className="grid gap-6 xl:grid-cols-[1.5fr_0.95fr] xl:items-start">
       <div className="space-y-6">
         <Card className="p-5 md:p-6">
           <div className="space-y-4">
@@ -301,30 +361,37 @@ export function PosClient({
         </div>
       </div>
 
-      <Card className="flex h-fit flex-col p-5 md:p-6 xl:sticky xl:top-6 xl:h-[calc(100vh-8rem)] xl:max-h-[calc(100vh-8rem)] xl:min-h-0">
-        <div className="shrink-0">
-          <Badge variant="neutral" className="mb-3 w-fit">Keranjang</Badge>
+      <Card className="relative flex h-fit flex-col gap-4 overflow-hidden rounded-[calc(var(--radius-panel)+0.25rem)] border-white/70 bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(252,246,240,0.92))] p-4 shadow-[0_30px_60px_rgba(82,49,29,0.1)] md:p-5 xl:sticky xl:top-6 xl:h-[calc(100vh-7rem)] xl:max-h-[calc(100vh-7rem)] xl:min-h-[calc(100vh-7rem)] xl:gap-3.5 xl:p-4">
+        <div aria-hidden className="pointer-events-none absolute inset-x-6 top-0 h-24 rounded-full bg-[radial-gradient(circle,rgba(217,151,88,0.16),transparent_72%)] blur-2xl" />
+
+        <div className="relative shrink-0 rounded-[var(--radius-soft)] bg-[rgba(255,255,255,0.72)] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.76)] xl:p-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <Badge variant="neutral" className="w-fit bg-[rgba(255,248,242,0.96)]">Keranjang</Badge>
+            <div className="rounded-full bg-white/72 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-[var(--muted)] shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+              {cartItemCount} item
+            </div>
+          </div>
         </div>
 
-        <div className="mt-6 min-h-0 flex-1 overflow-hidden">
-          <div className="h-full space-y-2.5 overflow-y-auto pr-1">
+        <div className="relative min-h-0 flex-1 overflow-hidden rounded-[calc(var(--radius-soft)+0.15rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.5),rgba(250,243,236,0.74))] p-2.5 xl:p-2">
+          <div className="h-full space-y-2.5 overflow-y-auto pr-1.5 xl:overscroll-contain">
             {cart.length ? (
               cart.map((item) => (
                 <div
                   key={item.id}
                   data-testid={`cart-item-${item.id}`}
-                  className="flex items-center justify-between gap-3 rounded-[var(--radius-soft)] border border-[var(--line)] bg-white/80 px-3.5 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]"
+                  className="flex items-center justify-between gap-3 rounded-[calc(var(--radius-soft)-0.1rem)] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(251,244,236,0.84))] px-3.5 py-3 shadow-[0_14px_24px_rgba(82,49,29,0.06),inset_0_1px_0_rgba(255,255,255,0.74)]"
                 >
                   <div className="min-w-0 space-y-1 pr-2">
                     <p className="truncate text-sm font-semibold text-[var(--ink)]">{item.name}</p>
-                    <p className="text-sm font-semibold text-[var(--coffee-500)]">{formatCurrency(item.price)}</p>
+                    <p className="text-sm font-semibold text-[var(--coffee-600)]">{formatCurrency(item.price)}</p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1 rounded-full border border-[var(--line)] bg-[var(--surface-soft)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]">
+                  <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[rgba(255,255,255,0.76)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
                     <button
                       data-testid={`cart-decrease-${item.id}`}
                       type="button"
                       onClick={() => updateQuantity(item.id, -1)}
-                      className="flex size-7 items-center justify-center rounded-full bg-white text-[var(--muted)] transition hover:text-[var(--coffee-700)]"
+                      className="flex size-7 items-center justify-center rounded-full bg-white/92 text-[var(--muted)] shadow-[0_8px_18px_rgba(82,49,29,0.06)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--coffee-700)]"
                       aria-label={`Kurangi jumlah ${item.name}`}
                     >
                       <Minus className="size-3.5" />
@@ -334,7 +401,7 @@ export function PosClient({
                       data-testid={`cart-increase-${item.id}`}
                       type="button"
                       onClick={() => updateQuantity(item.id, 1)}
-                      className="flex size-7 items-center justify-center rounded-full bg-white text-[var(--muted)] transition hover:text-[var(--coffee-700)]"
+                      className="flex size-7 items-center justify-center rounded-full bg-white/92 text-[var(--muted)] shadow-[0_8px_18px_rgba(82,49,29,0.06)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--coffee-700)]"
                       aria-label={`Tambah jumlah ${item.name}`}
                     >
                       <Plus className="size-3.5" />
@@ -343,7 +410,7 @@ export function PosClient({
                 </div>
               ))
             ) : (
-              <div className="rounded-[var(--radius-soft)] border border-dashed border-[var(--line)] bg-[rgba(255,255,255,0.6)] p-6 text-center">
+              <div className="rounded-[var(--radius-soft)] border border-dashed border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.72),rgba(251,244,236,0.8))] p-6 text-center shadow-[inset_0_1px_0_rgba(255,255,255,0.74)]">
                 <p className="text-base font-medium text-[var(--ink)]">Keranjang masih kosong</p>
                 <p className="mt-2 text-sm leading-6 text-[var(--muted)]">Pilih menu dari panel kiri untuk memulai transaksi.</p>
               </div>
@@ -351,7 +418,7 @@ export function PosClient({
           </div>
         </div>
 
-        <div className="mt-6 shrink-0 space-y-4 rounded-[var(--radius-soft)] border border-[var(--line)] bg-white/70 p-4">
+        <div className="relative shrink-0 space-y-4 rounded-[var(--radius-soft)] bg-[linear-gradient(135deg,rgba(255,250,246,0.92),rgba(244,230,215,0.82))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.76)] xl:space-y-3.5 xl:p-3.5">
           <div className="space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-[var(--muted)]">Metode Pembayaran</p>
             <div className={cn("grid gap-2", enabledPaymentMethods.length === 1 ? "grid-cols-1" : enabledPaymentMethods.length === 2 ? "grid-cols-2" : "sm:grid-cols-3 xl:grid-cols-1 2xl:grid-cols-3")}>
@@ -359,27 +426,27 @@ export function PosClient({
                 const Icon = paymentMethodIcons[id];
 
                 return (
-                <button
-                  key={id}
-                  type="button"
-                  data-testid={`payment-method-${id}`}
-                  onClick={() => setPaymentMethod(id)}
-                  className={cn(
-                    "flex items-center justify-center gap-2 rounded-[1.1rem] border px-4 py-3 text-sm font-semibold transition",
-                    paymentMethod === id
-                      ? "border-[var(--coffee-500)] bg-white text-[var(--coffee-700)] shadow-[0_14px_28px_rgba(122,75,44,0.12)]"
-                      : "border-transparent bg-[var(--surface-soft)] text-[var(--muted)]"
-                  )}
-                >
-                  <Icon className="size-4" />
-                  {label}
-                </button>
+                  <button
+                    key={id}
+                    type="button"
+                    data-testid={`payment-method-${id}`}
+                    onClick={() => setPaymentMethod(id)}
+                    className={cn(
+                      "flex items-center justify-center gap-2 rounded-[1.1rem] border px-4 py-3 text-sm font-semibold transition",
+                      paymentMethod === id
+                        ? "border-[rgba(198,122,63,0.22)] bg-[linear-gradient(135deg,rgba(255,248,242,0.96),rgba(241,227,210,0.92))] text-[var(--coffee-700)] shadow-[0_14px_28px_rgba(122,75,44,0.1)]"
+                        : "border-transparent bg-white/72 text-[var(--muted)] shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] hover:bg-white/84 hover:text-[var(--ink)]"
+                    )}
+                  >
+                    <Icon className="size-4" />
+                    {label}
+                  </button>
                 );
               })}
             </div>
           </div>
 
-          <div className="space-y-3 border-t border-[var(--line)] pt-4 text-sm">
+          <div className="space-y-3 rounded-[calc(var(--radius-soft)-0.1rem)] border border-[var(--line)] bg-[rgba(255,255,255,0.7)] p-3.5 text-sm shadow-[inset_0_1px_0_rgba(255,255,255,0.76)]">
             <div className="flex items-center justify-between text-[var(--muted)]">
               <span>Subtotal</span>
               <span data-testid="cart-subtotal">{formatCurrency(subtotal)}</span>
@@ -388,23 +455,153 @@ export function PosClient({
               <span>Pajak ({taxRate}%)</span>
               <span data-testid="cart-tax">{formatCurrency(tax)}</span>
             </div>
+            <div className="h-px bg-[var(--line)]" />
             <div className="flex items-center justify-between text-lg font-semibold text-[var(--ink)]">
               <span>Total</span>
-              <span data-testid="cart-total">{formatCurrency(total)}</span>
+              <span data-testid="cart-total" className="tracking-[-0.03em] text-[var(--coffee-800)]">{formatCurrency(total)}</span>
             </div>
           </div>
         </div>
 
-        <div className="mt-6 shrink-0 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
-          <Button data-testid="checkout-button" type="button" size="lg" onClick={handleCheckout} disabled={!cart.length || enabledPaymentMethods.length === 0}>
+        <div className="relative shrink-0 grid gap-3 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2">
+          <Button
+            data-testid="checkout-button"
+            type="button"
+            size="lg"
+            onClick={handleCheckout}
+            disabled={!cart.length || enabledPaymentMethods.length === 0}
+            className="shadow-[0_20px_34px_rgba(122,75,44,0.2)]"
+          >
             Tutup Transaksi
           </Button>
-          <Button data-testid="reset-cart-button" type="button" size="lg" variant="outline" onClick={resetCart} disabled={!cart.length}>
+          <Button
+            data-testid="reset-cart-button"
+            type="button"
+            size="lg"
+            variant="outline"
+            onClick={resetCart}
+            disabled={!cart.length}
+            className="bg-white/76 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] hover:bg-[var(--surface-soft)]"
+          >
             <RotateCcw className="size-4" />
             Reset
           </Button>
         </div>
       </Card>
+
+      {cashDialogOpen && isMounted
+        ? createPortal(
+            <div className="fixed inset-0 z-[100] flex min-h-screen w-screen items-center justify-center bg-[rgb(17_24_39_/_0.8)] px-4 py-6 backdrop-blur-md">
+              <div className="w-full max-w-md rounded-[2rem] border border-[rgba(255,255,255,0.65)] bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(255,248,242,0.94))] p-6 shadow-[0_28px_70px_rgba(32,18,9,0.22)]">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h2 className="text-[2rem] font-semibold tracking-[-0.04em] text-[var(--ink)]">Konfirmasi Pembayaran</h2>
+                <p className="text-sm text-[var(--muted)]">
+                  Metode: <span className="font-semibold text-[var(--coffee-700)]">{activePaymentMethodLabel}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCashDialogOpen(false)}
+                className="flex size-10 items-center justify-center rounded-full bg-[var(--surface-soft)] text-[var(--muted)] transition hover:text-[var(--ink)]"
+                aria-label="Tutup konfirmasi pembayaran"
+              >
+                <X className="size-4.5" />
+              </button>
+            </div>
+
+            <div className="mt-6 space-y-2 text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">Total Tagihan</p>
+              <p className="text-[2.5rem] font-semibold tracking-[-0.05em] text-[var(--coffee-700)]">{formatCurrency(total)}</p>
+              <p className="text-sm text-[var(--muted)]">Sudah termasuk pajak {taxRate}%</p>
+            </div>
+
+            <div className="mt-6 space-y-3">
+              <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--muted)]">Nominal Dibayar</p>
+              <div className="grid grid-cols-4 gap-2">
+                {CASH_QUICK_AMOUNTS.slice(0, 4).map((amount) => (
+                  <button
+                    key={amount}
+                    type="button"
+                    onClick={() => handleCashQuickAmount(amount)}
+                    className={cn(
+                      "rounded-[1rem] border px-3 py-3 text-sm font-semibold transition",
+                      cashPaidAmount === amount
+                        ? "border-[var(--coffee-500)] bg-[rgba(198,122,63,0.12)] text-[var(--coffee-700)]"
+                        : "border-[var(--line)] bg-white text-[var(--ink)] hover:bg-[var(--surface-soft)]"
+                    )}
+                  >
+                    {amount >= 1000 ? `${amount / 1000}rb` : amount}
+                  </button>
+                ))}
+              </div>
+              <div className="flex justify-center">
+                <button
+                  type="button"
+                  onClick={() => handleCashQuickAmount(CASH_QUICK_AMOUNTS[4])}
+                  className={cn(
+                    "w-[calc((100%-1.5rem)/4)] min-w-[6.5rem] rounded-[1rem] border px-3 py-3 text-sm font-semibold transition",
+                    cashPaidAmount === CASH_QUICK_AMOUNTS[4]
+                      ? "border-[var(--coffee-500)] bg-[rgba(198,122,63,0.12)] text-[var(--coffee-700)]"
+                      : "border-[var(--line)] bg-white text-[var(--ink)] hover:bg-[var(--surface-soft)]"
+                  )}
+                >
+                  500rb
+                </button>
+              </div>
+              <Input
+                inputMode="numeric"
+                value={cashPaidInput ? formatCurrency(Number(cashPaidInput)) : ""}
+                onChange={(event) => handleCashInputChange(event.target.value)}
+                placeholder="Masukan Nominal Lain"
+                className="h-14 rounded-[1.1rem] text-lg font-semibold"
+              />
+            </div>
+
+            <div
+              className={cn(
+                "mt-5 rounded-[1.25rem] border p-4",
+                cashChangeAmount >= 0
+                  ? "border-emerald-300/70 bg-emerald-50 text-emerald-800"
+                  : "border-amber-300/70 bg-amber-50 text-amber-800"
+              )}
+            >
+              <div className="flex items-center justify-between gap-4">
+                <div>
+                  <p className="text-sm font-semibold">{cashChangeAmount >= 0 ? "Kembalian" : "Kurang Bayar"}</p>
+                  <p className="text-xs opacity-80">
+                    {hasCashInput
+                      ? cashChangeAmount >= 0
+                        ? "Hitung otomatis dari nominal dibayar customer"
+                        : "Tambahkan nominal hingga minimal sama dengan total"
+                      : "Isi nominal dibayar atau pilih nominal cepat untuk menghitung otomatis"}
+                  </p>
+                </div>
+                <p className="text-[1.9rem] font-semibold tracking-[-0.04em]">{hasCashInput ? formatCurrency(Math.abs(cashChangeAmount)) : formatCurrency(0)}</p>
+              </div>
+            </div>
+
+            <div className="mt-6 grid grid-cols-[5rem_minmax(0,1fr)] gap-3">
+              <Button type="button" size="lg" variant="outline" className="h-16 rounded-[1.15rem]" onClick={() => window.print()}>
+                <ReceiptText className="size-5" />
+              </Button>
+              <Button
+                type="button"
+                size="lg"
+                className="h-16 rounded-[1.15rem] bg-[linear-gradient(135deg,#17a26b,#12955f)] shadow-[0_18px_30px_rgba(18,149,95,0.22)] hover:bg-[linear-gradient(135deg,#159765,#108a58)]"
+                disabled={!hasCashInput || cashPaidAmount < total}
+                onClick={() => {
+                  void submitOrder();
+                }}
+              >
+                Selesaikan Transaksi
+              </Button>
+            </div>
+              </div>
+            </div>,
+            document.body
+          )
+        : null}
     </div>
   );
 }
