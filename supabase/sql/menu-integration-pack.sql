@@ -4,9 +4,23 @@
 -- This file is safe only after the base tables already exist.
 
 alter table public.sales_orders add column if not exists cashier_name text;
+alter table public.products add column if not exists image_path text;
 
 alter table public.app_settings add column if not exists payment_methods jsonb not null default '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb;
 alter table public.app_settings add column if not exists menu_categories jsonb not null default '["Espresso","Manual Brew","Non Coffee","Makanan"]'::jsonb;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('product-images', 'product-images', true, 1048576, array['image/jpeg', 'image/webp'])
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+-- Product image objects are stored with a flat path pattern like:
+-- products/<product-id>-<timestamp>.<ext>
+
+drop policy if exists public_read_product_images on storage.objects;
+create policy public_read_product_images on storage.objects for select using (bucket_id = 'product-images');
 
 insert into public.app_settings (
   id,

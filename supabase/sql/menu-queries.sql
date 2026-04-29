@@ -41,12 +41,12 @@ order by stock asc, name asc;
 -- =========================================================
 
 -- Product catalog for POS Kasir
-select id, name, category, price, stock
+select id, name, category, price, stock, image_path
 from public.products
 order by name asc;
 
 -- Product catalog with all mapped fields used by Produk page too
-select id, name, category, description, price, stock, sku, sold_today, status
+select id, name, category, description, price, stock, sku, sold_today, status, image_path
 from public.products
 order by name asc;
 

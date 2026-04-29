@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Pencil, Plus, Trash2, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { compressProductImage } from "@/lib/products/image-upload";
 import { useSettings } from "@/components/providers/settings";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +24,7 @@ type ProductFormValues = {
   stock: string;
   soldToday: string;
   status: Product["status"];
+  imagePath: string | null;
 };
 
 const emptyForm: ProductFormValues = {
@@ -34,6 +36,7 @@ const emptyForm: ProductFormValues = {
   stock: "0",
   soldToday: "0",
   status: "Aktif",
+  imagePath: null,
 };
 
 function toFormValues(product: Product): ProductFormValues {
@@ -46,6 +49,7 @@ function toFormValues(product: Product): ProductFormValues {
     stock: String(product.stock),
     soldToday: String(product.soldToday),
     status: product.status,
+    imagePath: product.imagePath,
   };
 }
 
@@ -57,6 +61,8 @@ export function ProductCrudClient({ initialProducts }: { initialProducts: Produc
   const [submitting, setSubmitting] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
+  const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
 
   const title = editingProductId ? "Edit menu" : "Tambah menu baru";
   const description = editingProductId
@@ -78,6 +84,8 @@ export function ProductCrudClient({ initialProducts }: { initialProducts: Produc
   function resetForm() {
     setEditingProductId(null);
     setValues(emptyForm);
+    setSelectedImageFile(null);
+    setImagePreviewUrl(null);
     setDialogOpen(false);
   }
 
@@ -115,12 +123,23 @@ export function ProductCrudClient({ initialProducts }: { initialProducts: Produc
         soldToday: Number(values.soldToday),
       };
 
+      const formData = new FormData();
+      formData.set("name", payload.name);
+      formData.set("description", payload.description);
+      formData.set("sku", payload.sku);
+      formData.set("category", payload.category);
+      formData.set("price", String(payload.price));
+      formData.set("stock", String(payload.stock));
+      formData.set("soldToday", String(payload.soldToday));
+      formData.set("status", payload.status);
+
+      if (selectedImageFile) {
+        formData.set("image", selectedImageFile);
+      }
+
       const response = await fetch(editingProductId ? `/api/products/${editingProductId}` : "/api/products", {
         method: editingProductId ? "PATCH" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
+        body: formData,
       });
 
       const result = (await response.json().catch(() => null)) as { error?: string; product?: Product } | null;
@@ -173,6 +192,24 @@ export function ProductCrudClient({ initialProducts }: { initialProducts: Produc
     toast.success("Produk berhasil dihapus.");
   }
 
+  async function handleImageChange(file: File | null) {
+    if (!file) {
+      setSelectedImageFile(null);
+      setImagePreviewUrl(values.imagePath);
+      return;
+    }
+
+    try {
+      const compressed = await compressProductImage(file);
+      setSelectedImageFile(compressed);
+      setImagePreviewUrl(URL.createObjectURL(compressed));
+    } catch (error) {
+      toast.error("Gagal memproses gambar produk.", {
+        description: error instanceof Error ? error.message : "Gunakan JPG, JPEG, atau WEBP dengan hasil kompresi maksimal 1MB.",
+      });
+    }
+  }
+
   return (
     <div className="space-y-6">
       <Card className="p-6">
@@ -188,6 +225,8 @@ export function ProductCrudClient({ initialProducts }: { initialProducts: Produc
               onClick={() => {
                 setEditingProductId(null);
                 setValues(emptyForm);
+                setSelectedImageFile(null);
+                setImagePreviewUrl(null);
                 setDialogOpen(true);
               }}
             >
@@ -242,6 +281,8 @@ export function ProductCrudClient({ initialProducts }: { initialProducts: Produc
                           onClick={() => {
                             setEditingProductId(product.id);
                             setValues(toFormValues(product));
+                            setSelectedImageFile(null);
+                            setImagePreviewUrl(product.imagePath);
                             setDialogOpen(true);
                           }}
                         >
@@ -341,6 +382,18 @@ export function ProductCrudClient({ initialProducts }: { initialProducts: Produc
                       className="min-h-28 w-full rounded-[var(--radius-soft)] border border-[var(--line)] bg-white px-4 py-3 text-sm text-[var(--ink)] outline-none transition focus:border-[var(--coffee-300)] focus:ring-2 focus:ring-[rgba(224,164,92,0.18)]"
                     />
                   </label>
+
+                  <label className="space-y-2 text-sm font-medium text-[var(--ink)]">
+                    <span>Gambar produk</span>
+                    <Input type="file" accept=".jpg,.jpeg,.webp,image/jpeg,image/webp" onChange={(event) => void handleImageChange(event.target.files?.[0] ?? null)} />
+                    <p className="text-xs text-[var(--muted)]">Hanya JPG, JPEG, dan WEBP. Gambar dikompres maksimal 1MB sebelum upload.</p>
+                  </label>
+
+                  {imagePreviewUrl ? (
+                    <div className="overflow-hidden rounded-[var(--radius-soft)] border border-[var(--line)] bg-white">
+                      <img src={imagePreviewUrl} alt="Preview gambar produk" className="h-48 w-full object-cover" />
+                    </div>
+                  ) : null}
 
                   <div className="grid gap-3 sm:grid-cols-2">
                     <Button type="button" variant="outline" onClick={resetForm}>

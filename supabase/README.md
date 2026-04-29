@@ -31,3 +31,15 @@ For an existing database, use this order:
 - `sql/menu-queries.sql`
   - Manual query pack only.
   - Never treat this file as a migration.
+
+## Product image uploads
+
+- Product images use Supabase Storage bucket: `product-images`
+- Product image object path pattern:
+  - `products/<product-id>-<timestamp>.<ext>`
+- Allowed upload MIME types:
+  - `image/jpeg`
+  - `image/webp`
+- Maximum target file size after browser compression:
+  - `1MB`
+- Product rows store the storage object path in `products.image_path`

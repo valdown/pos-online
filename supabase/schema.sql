@@ -53,8 +53,24 @@ create table if not exists public.products (
   stock integer not null default 0,
   sku text not null unique,
   sold_today integer not null default 0,
-  status text not null check (status in ('Aktif', 'Hampir Habis'))
+  status text not null check (status in ('Aktif', 'Hampir Habis')),
+  image_path text
 );
+
+alter table public.products add column if not exists image_path text;
+
+insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+values ('product-images', 'product-images', true, 1048576, array['image/jpeg', 'image/webp'])
+on conflict (id) do update set
+  public = excluded.public,
+  file_size_limit = excluded.file_size_limit,
+  allowed_mime_types = excluded.allowed_mime_types;
+
+-- Product image objects are stored with a flat path pattern like:
+-- products/<product-id>-<timestamp>.<ext>
+
+drop policy if exists public_read_product_images on storage.objects;
+create policy public_read_product_images on storage.objects for select using (bucket_id = 'product-images');
 
 create table if not exists public.staff_members (
   id text primary key,
@@ -289,16 +305,16 @@ on conflict (sort_order) do update set
   orders = excluded.orders,
   share = excluded.share;
 
-insert into public.products (id, name, category, description, price, stock, sku, sold_today, status)
+insert into public.products (id, name, category, description, price, stock, sku, sold_today, status, image_path)
 values
-  ('caramel-macchiato', 'Caramel Macchiato', 'Espresso', 'Espresso, susu steamed, dan caramel drizzle.', 34000, 42, 'CB-ESP-014', 38, 'Aktif'),
-  ('flat-white', 'Flat White', 'Espresso', 'Body creamy dengan roast cokelat kacang.', 30000, 35, 'CB-ESP-003', 31, 'Aktif'),
-  ('v60-kintamani', 'V60 Kintamani', 'Manual Brew', 'Profil citrus floral dengan body ringan.', 36000, 16, 'CB-MBR-011', 14, 'Aktif'),
-  ('aren-latte', 'Aren Latte', 'Non Coffee', 'Latte susu aren dengan tekstur lembut.', 32000, 28, 'CB-NCF-008', 23, 'Aktif'),
-  ('matcha-cloud', 'Matcha Cloud', 'Non Coffee', 'Matcha creamy dengan foam vanilla tipis.', 33000, 10, 'CB-NCF-004', 19, 'Hampir Habis'),
-  ('beef-burger-chips', 'Beef Burger & Chips', 'Makanan', 'Burger signature dengan kentang renyah.', 52000, 18, 'CB-FOD-021', 27, 'Aktif'),
-  ('croissant-almond', 'Croissant Almond', 'Makanan', 'Butter croissant dengan taburan almond panggang.', 28000, 9, 'CB-FOD-017', 21, 'Hampir Habis'),
-  ('spanish-latte', 'Spanish Latte', 'Espresso', 'Espresso blend, susu, dan condensed milk.', 34000, 24, 'CB-ESP-019', 25, 'Aktif')
+  ('caramel-macchiato', 'Caramel Macchiato', 'Espresso', 'Espresso, susu steamed, dan caramel drizzle.', 34000, 42, 'CB-ESP-014', 38, 'Aktif', null),
+  ('flat-white', 'Flat White', 'Espresso', 'Body creamy dengan roast cokelat kacang.', 30000, 35, 'CB-ESP-003', 31, 'Aktif', null),
+  ('v60-kintamani', 'V60 Kintamani', 'Manual Brew', 'Profil citrus floral dengan body ringan.', 36000, 16, 'CB-MBR-011', 14, 'Aktif', null),
+  ('aren-latte', 'Aren Latte', 'Non Coffee', 'Latte susu aren dengan tekstur lembut.', 32000, 28, 'CB-NCF-008', 23, 'Aktif', null),
+  ('matcha-cloud', 'Matcha Cloud', 'Non Coffee', 'Matcha creamy dengan foam vanilla tipis.', 33000, 10, 'CB-NCF-004', 19, 'Hampir Habis', null),
+  ('beef-burger-chips', 'Beef Burger & Chips', 'Makanan', 'Burger signature dengan kentang renyah.', 52000, 18, 'CB-FOD-021', 27, 'Aktif', null),
+  ('croissant-almond', 'Croissant Almond', 'Makanan', 'Butter croissant dengan taburan almond panggang.', 28000, 9, 'CB-FOD-017', 21, 'Hampir Habis', null),
+  ('spanish-latte', 'Spanish Latte', 'Espresso', 'Espresso blend, susu, dan condensed milk.', 34000, 24, 'CB-ESP-019', 25, 'Aktif', null)
 on conflict do nothing;
 
 insert into public.staff_members (id, name, role, access, shift, phone, status)

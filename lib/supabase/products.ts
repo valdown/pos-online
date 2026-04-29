@@ -3,7 +3,7 @@ import { z } from "zod";
 import type { Product } from "@/lib/mock-data";
 export const productStatuses = ["Aktif", "Hampir Habis"] as const;
 
-export type ProductRow = Omit<Product, "soldToday"> & { sold_today: number };
+export type ProductRow = Omit<Product, "soldToday" | "imagePath"> & { sold_today: number; image_path: string | null };
 
 export const productInputSchema = z.object({
   name: z.string().trim().min(1, "Nama produk wajib diisi."),
@@ -29,6 +29,7 @@ export function mapProductRow(row: ProductRow): Product {
     sku: row.sku,
     soldToday: row.sold_today,
     status: row.status,
+    imagePath: row.image_path,
   };
 }
 
@@ -43,6 +44,7 @@ export function mapProductInputToRow(id: string, input: ProductInput): ProductRo
     sku: input.sku,
     sold_today: input.soldToday,
     status: input.status,
+    image_path: null,
   };
 }
 

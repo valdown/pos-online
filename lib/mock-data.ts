@@ -29,6 +29,7 @@ export type Product = {
   sku: string;
   soldToday: number;
   status: "Aktif" | "Hampir Habis";
+  imagePath: string | null;
 };
 
 export type CashierInvoiceItem = {
@@ -177,6 +178,7 @@ export const products: Product[] = [
     sku: "CB-ESP-014",
     soldToday: 38,
     status: "Aktif",
+    imagePath: null,
   },
   {
     id: "flat-white",
@@ -188,6 +190,7 @@ export const products: Product[] = [
     sku: "CB-ESP-003",
     soldToday: 31,
     status: "Aktif",
+    imagePath: null,
   },
   {
     id: "v60-kintamani",
@@ -199,6 +202,7 @@ export const products: Product[] = [
     sku: "CB-MBR-011",
     soldToday: 14,
     status: "Aktif",
+    imagePath: null,
   },
   {
     id: "aren-latte",
@@ -210,6 +214,7 @@ export const products: Product[] = [
     sku: "CB-NCF-008",
     soldToday: 23,
     status: "Aktif",
+    imagePath: null,
   },
   {
     id: "matcha-cloud",
@@ -221,6 +226,7 @@ export const products: Product[] = [
     sku: "CB-NCF-004",
     soldToday: 19,
     status: "Hampir Habis",
+    imagePath: null,
   },
   {
     id: "beef-burger-chips",
@@ -232,6 +238,7 @@ export const products: Product[] = [
     sku: "CB-FOD-021",
     soldToday: 27,
     status: "Aktif",
+    imagePath: null,
   },
   {
     id: "croissant-almond",
@@ -243,6 +250,7 @@ export const products: Product[] = [
     sku: "CB-FOD-017",
     soldToday: 21,
     status: "Hampir Habis",
+    imagePath: null,
   },
   {
     id: "spanish-latte",
@@ -254,6 +262,7 @@ export const products: Product[] = [
     sku: "CB-ESP-019",
     soldToday: 25,
     status: "Aktif",
+    imagePath: null,
   },
 ];
 

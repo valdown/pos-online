@@ -6,6 +6,7 @@ import { NextResponse } from "next/server";
 import { APP_SESSION_COOKIE } from "@/lib/auth";
 import { resolveInternalSessionUser } from "@/lib/internal-auth";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { buildProductImagePath, getProductImageExtension, isAllowedProductImageType, PRODUCT_IMAGES_BUCKET, PRODUCT_IMAGE_MAX_BYTES } from "@/lib/supabase/product-images";
 import { mapProductInputToRow, mapProductRow, productInputSchema, slugifyProductId, type ProductRow } from "@/lib/supabase/products";
 
 async function requireInternalOwner() {
@@ -36,7 +37,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "SUPABASE_SECRET_KEY belum aktif, jadi produk tidak bisa disimpan." }, { status: 500 });
   }
 
-  const body = await request.json().catch(() => null);
+  const formData = await request.formData().catch(() => null);
+  const imageFile = formData?.get("image") instanceof File ? (formData.get("image") as File) : null;
+  const body = formData
+    ? {
+        name: formData.get("name"),
+        description: formData.get("description"),
+        sku: formData.get("sku"),
+        category: formData.get("category"),
+        price: formData.get("price"),
+        stock: formData.get("stock"),
+        soldToday: formData.get("soldToday"),
+        status: formData.get("status"),
+      }
+    : null;
   const parsed = productInputSchema.safeParse(body);
 
   if (!parsed.success) {
@@ -46,10 +60,37 @@ export async function POST(request: Request) {
   const baseId = slugifyProductId(parsed.data.name) || `produk-${Date.now()}`;
   const candidateId = `${baseId}-${Date.now().toString().slice(-6)}`;
   const row = mapProductInputToRow(candidateId, parsed.data);
+  let uploadedPath: string | null = null;
+
+  if (imageFile && imageFile.size > 0) {
+    if (!isAllowedProductImageType(imageFile.type)) {
+      return NextResponse.json({ error: "Format gambar tidak didukung. Gunakan JPG, JPEG, atau WEBP." }, { status: 400 });
+    }
+
+    if (imageFile.size > PRODUCT_IMAGE_MAX_BYTES) {
+      return NextResponse.json({ error: "Ukuran gambar melebihi 1MB setelah kompresi." }, { status: 400 });
+    }
+
+    uploadedPath = buildProductImagePath(candidateId, getProductImageExtension(imageFile.type));
+    const { error: uploadError } = await supabase.storage.from(PRODUCT_IMAGES_BUCKET).upload(uploadedPath, imageFile, {
+      contentType: imageFile.type,
+      upsert: false,
+    });
+
+    if (uploadError) {
+      return NextResponse.json({ error: "Gagal mengunggah gambar produk ke storage." }, { status: 500 });
+    }
+
+    row.image_path = uploadedPath;
+  }
 
   const { data, error } = await supabase.from("products").insert(row).select("*").single<ProductRow>();
 
   if (error) {
+    if (uploadedPath) {
+      await supabase.storage.from(PRODUCT_IMAGES_BUCKET).remove([uploadedPath]);
+    }
+
     const status = error.code === "23505" ? 409 : 500;
     const message = error.code === "23505" ? "SKU sudah dipakai produk lain." : "Gagal menambahkan produk ke database.";
     return NextResponse.json({ error: message }, { status });
