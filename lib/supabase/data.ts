@@ -29,11 +29,11 @@ import {
   mapNotificationSettingsRowToModel,
 } from "@/lib/supabase/settings";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { mapProductRow, type ProductRow } from "@/lib/supabase/products";
 
 type DashboardStatRow = DashboardStat & { sort_order?: number };
 type RevenuePointRow = RevenuePoint & { sort_order?: number };
 type PopularItemRow = PopularItem & { sort_order?: number };
-type ProductRow = Omit<Product, "soldToday"> & { sold_today: number };
 type StaffMemberRow = StaffMember;
 type NotificationFeedRow = NotificationFeedItem & { sort_order?: number };
 type CashierSnapshotRow = {
@@ -41,20 +41,6 @@ type CashierSnapshotRow = {
   active_time: string;
   highlighted_table: string;
 };
-
-function mapProductRow(row: ProductRow): Product {
-  return {
-    id: row.id,
-    name: row.name,
-    category: row.category,
-    description: row.description,
-    price: row.price,
-    stock: row.stock,
-    sku: row.sku,
-    soldToday: row.sold_today,
-    status: row.status,
-  };
-}
 
 async function selectRows<T>(table: string, fallback: T[], orderBy = "sort_order") {
   const supabase = createAdminSupabaseClient();
@@ -85,7 +71,19 @@ export async function getPopularItems() {
 }
 
 export async function getProducts() {
-  const rows = await selectRows<ProductRow>("products", fallbackProducts.map((product) => ({ ...product, sold_today: product.soldToday })), "name");
+  const supabase = createAdminSupabaseClient();
+
+  if (!supabase) {
+    return [] as Product[];
+  }
+
+  const { data, error } = await supabase.from("products").select("*").order("name", { ascending: true });
+
+  if (error || !data) {
+    return [] as Product[];
+  }
+
+  const rows = data as ProductRow[];
   return rows.map(mapProductRow);
 }
 
