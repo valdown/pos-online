@@ -1,4 +1,5 @@
 import type { AppSettings, NotificationSettings } from "@/lib/mock-data";
+import { normalizeMenuCategories } from "@/lib/menu-categories";
 import { normalizePaymentMethods, type PaymentMethodSetting } from "@/lib/payment-methods";
 import { SUPABASE_SETTINGS_ROW_ID } from "@/lib/supabase/config";
 
@@ -16,6 +17,7 @@ export type AppSettingsRow = {
   opening_cash: number;
   auto_print_receipt: boolean;
   payment_methods: PaymentMethodSetting[] | null;
+  menu_categories: string[] | null;
 };
 
 export type NotificationSettingsRow = {
@@ -43,6 +45,7 @@ export function mapAppSettingsRowToModel(row: AppSettingsRow): AppSettings {
     openingCash: row.opening_cash,
     autoPrintReceipt: row.auto_print_receipt,
     paymentMethods: normalizePaymentMethods(row.payment_methods),
+    menuCategories: normalizeMenuCategories(row.menu_categories),
   };
 }
 
@@ -61,6 +64,7 @@ export function mapAppSettingsModelToRow(model: AppSettings): AppSettingsRow {
     opening_cash: model.openingCash,
     auto_print_receipt: model.autoPrintReceipt,
     payment_methods: normalizePaymentMethods(model.paymentMethods),
+    menu_categories: normalizeMenuCategories(model.menuCategories),
   };
 }
 

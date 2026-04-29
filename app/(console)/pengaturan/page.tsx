@@ -4,6 +4,7 @@ import { CurrentTimeDisplay } from "@/components/dashboard/current-time-display"
 import { useState } from "react";
 
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { MenuCategorySettingsForm } from "@/components/forms/menu-category-settings-form";
 import { PaymentMethodSettingsForm } from "@/components/forms/payment-method-settings-form";
 import { useSettings } from "@/components/providers/settings";
 import { PageHeader } from "@/components/ui/page-header";
@@ -28,6 +29,7 @@ export default function SettingsPage() {
         <TabsList>
           <TabsTrigger value="app-config">Konfigurasi Aplikasi</TabsTrigger>
           <TabsTrigger value="payment-methods">Konfigurasi Metode Pembayaran</TabsTrigger>
+          <TabsTrigger value="menu-categories">Konfigurasi Kategori Menu</TabsTrigger>
         </TabsList>
 
         <TabsContent value="app-config">
@@ -78,6 +80,28 @@ export default function SettingsPage() {
                         <p className="text-xs uppercase tracking-[0.18em] text-[var(--muted)]">{method.id}</p>
                       </div>
                       <span className="text-sm font-semibold text-[var(--coffee-700)]">{method.enabled ? "Aktif" : "Nonaktif"}</span>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="menu-categories">
+          <div className="grid gap-6 xl:grid-cols-[1.02fr_0.98fr]">
+            <MenuCategorySettingsForm />
+
+            <Card className="p-6">
+              <CardHeader>
+                <CardTitle>Preview kategori aktif</CardTitle>
+                <CardDescription>Kategori yang aktif di sini akan dipakai sebagai pilihan utama saat menambah atau mengedit menu.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {appSettings.menuCategories.map((category) => (
+                    <div key={category} className="rounded-[var(--radius-soft)] bg-[var(--surface-soft)] px-4 py-3">
+                      <p className="text-sm font-semibold text-[var(--ink)]">{category}</p>
                     </div>
                   ))}
                 </div>

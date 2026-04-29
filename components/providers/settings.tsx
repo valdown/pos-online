@@ -8,6 +8,7 @@ import {
   type AppSettings,
   type NotificationSettings,
 } from "@/lib/mock-data";
+import { normalizeMenuCategories } from "@/lib/menu-categories";
 import { normalizePaymentMethods } from "@/lib/payment-methods";
 import { getBrowserSupabaseClient } from "@/lib/supabase/client";
 import { SUPABASE_SETTINGS_ROW_ID } from "@/lib/supabase/config";
@@ -58,6 +59,7 @@ function normalizeStoredAppSettings(value: AppSettings): AppSettings {
     ...defaultAppSettings,
     ...value,
     paymentMethods: normalizePaymentMethods(value?.paymentMethods),
+    menuCategories: normalizeMenuCategories(value?.menuCategories),
   };
 }
 

@@ -50,7 +50,7 @@ export function AppSettingsForm() {
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
-      await setAppSettings(values);
+      await setAppSettings({ ...appSettings, ...values });
       toast.success("Pengaturan toko diperbarui.", {
         description:
           persistenceMode === "supabase"

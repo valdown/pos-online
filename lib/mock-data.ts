@@ -17,7 +17,7 @@ export type PopularItem = {
   share: number;
 };
 
-export type ProductCategory = "Semua" | "Espresso" | "Manual Brew" | "Non Coffee" | "Makanan";
+export type ProductCategory = string;
 
 export type Product = {
   id: string;
@@ -96,6 +96,7 @@ export type AppSettings = {
   openingCash: number;
   autoPrintReceipt: boolean;
   paymentMethods: PaymentMethodSetting[];
+  menuCategories: string[];
 };
 
 export const navigationItems = [
@@ -358,6 +359,7 @@ export const defaultAppSettings: AppSettings = {
     { id: "debit", label: "Debit", enabled: true },
     { id: "qris", label: "QRIS", enabled: true },
   ],
+  menuCategories: ["Espresso", "Manual Brew", "Non Coffee", "Makanan"],
 };
 
 export const cashierSnapshot = {
