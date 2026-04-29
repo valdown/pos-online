@@ -1,5 +1,6 @@
 -- Clean existing duplicate dashboard rows and harden uniqueness.
 -- Run this once on an existing database before re-running schema seeds if you already see duplicate cards.
+-- Skip this file if your dashboard tables are already clean.
 
 delete from public.dashboard_stats a
 using public.dashboard_stats b

@@ -1,5 +1,5 @@
--- Internal owner auth bootstrap without Supabase Auth.
--- Run this after the base schema if your database already exists.
+-- Legacy helper for internal owner auth bootstrap on older existing databases.
+-- If you already ran `../schema.sql` from the current repo state, you usually do not need this file.
 -- IMPORTANT: replace the default bootstrap password immediately after first login.
 
 create table if not exists public.staff_credentials (

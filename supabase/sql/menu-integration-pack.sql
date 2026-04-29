@@ -1,7 +1,12 @@
--- Run this in the Supabase SQL Editor to align the current app code
--- with the existing schema and invoice-kasir integration.
+-- Compatibility/backfill helper for an existing database.
+-- Prefer `../schema.sql` as the primary setup file for the current repo state.
+-- Use this file only when you intentionally need a smaller patch for an older DB.
+-- This file is safe only after the base tables already exist.
 
 alter table public.sales_orders add column if not exists cashier_name text;
+
+alter table public.app_settings add column if not exists payment_methods jsonb not null default '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb;
+alter table public.app_settings add column if not exists menu_categories jsonb not null default '["Espresso","Manual Brew","Non Coffee","Makanan"]'::jsonb;
 
 insert into public.app_settings (
   id,
@@ -16,7 +21,8 @@ insert into public.app_settings (
   bank_account_number,
   opening_cash,
   auto_print_receipt,
-  payment_methods
+  payment_methods,
+  menu_categories
 )
 values (
   'default',
@@ -31,15 +37,18 @@ values (
   '112233445566',
   750000,
   true,
-  '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb
+  '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb,
+  '["Espresso","Manual Brew","Non Coffee","Makanan"]'::jsonb
 )
 on conflict (id) do nothing;
-
-alter table public.app_settings add column if not exists payment_methods jsonb not null default '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb;
 
 update public.app_settings
 set payment_methods = '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb
 where payment_methods is null;
+
+update public.app_settings
+set menu_categories = '["Espresso","Manual Brew","Non Coffee","Makanan"]'::jsonb
+where menu_categories is null;
 
 insert into public.notification_settings (
   id,

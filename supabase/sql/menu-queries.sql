@@ -218,6 +218,16 @@ select
 from public.app_settings
 where id = 'default';
 
+-- Payment method settings from app_settings
+select id, payment_methods
+from public.app_settings
+where id = 'default';
+
+-- Menu category settings from app_settings
+select id, menu_categories
+from public.app_settings
+where id = 'default';
+
 -- =========================================================
 -- OPTIONAL CHECKS
 -- =========================================================

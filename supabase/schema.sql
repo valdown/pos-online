@@ -148,10 +148,12 @@ create table if not exists public.app_settings (
   bank_account_number text not null,
   opening_cash integer not null default 0,
   auto_print_receipt boolean not null default false,
-  payment_methods jsonb not null default '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb
+  payment_methods jsonb not null default '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb,
+  menu_categories jsonb not null default '["Espresso","Manual Brew","Non Coffee","Makanan"]'::jsonb
 );
 
 alter table public.app_settings add column if not exists payment_methods jsonb not null default '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb;
+alter table public.app_settings add column if not exists menu_categories jsonb not null default '["Espresso","Manual Brew","Non Coffee","Makanan"]'::jsonb;
 
 create table if not exists public.notification_settings (
   id text primary key,
@@ -334,13 +336,14 @@ values ('default', 3, '23.42', 'Counter A')
 on conflict (id) do nothing;
 
 insert into public.app_settings (
-  id, store_name, branch_name, tax_rate, service_fee, store_phone, receipt_footer, bank_name, bank_account_name, bank_account_number, opening_cash, auto_print_receipt, payment_methods
+  id, store_name, branch_name, tax_rate, service_fee, store_phone, receipt_footer, bank_name, bank_account_name, bank_account_number, opening_cash, auto_print_receipt, payment_methods, menu_categories
 )
 values (
-  'default', 'Coffee Bean Signature', 'Cabang Setiabudi', 11, 5, '021-5550-7788', 'Terima kasih sudah menikmati racikan kami. Sampai jumpa lagi!', 'Bank Central Asia', 'PT Coffee Bean Nusantara', '112233445566', 750000, true, '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb
+  'default', 'Coffee Bean Signature', 'Cabang Setiabudi', 11, 5, '021-5550-7788', 'Terima kasih sudah menikmati racikan kami. Sampai jumpa lagi!', 'Bank Central Asia', 'PT Coffee Bean Nusantara', '112233445566', 750000, true, '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb, '["Espresso","Manual Brew","Non Coffee","Makanan"]'::jsonb
 )
 on conflict (id) do update set
-  payment_methods = coalesce(public.app_settings.payment_methods, excluded.payment_methods);
+  payment_methods = coalesce(public.app_settings.payment_methods, excluded.payment_methods),
+  menu_categories = coalesce(public.app_settings.menu_categories, excluded.menu_categories);
 
 insert into public.notification_settings (
   id, telegram_enabled, bot_token, chat_id, digest_frequency, low_stock_alert, cashier_summary, refund_alert
