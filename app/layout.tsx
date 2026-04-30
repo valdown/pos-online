@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/react";
 import { Cormorant_Garamond, Manrope } from "next/font/google";
 
+import { LoadingOverlayProvider } from "@/components/providers/loading-overlay";
 import { AppToaster } from "@/components/providers/toaster";
 import { SettingsProvider } from "@/components/providers/settings";
 
@@ -36,9 +37,11 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="id">
       <body className={`${bodyFont.variable} ${displayFont.variable} min-h-svh bg-[var(--app-bg)] font-sans text-[var(--ink)] antialiased`}>
         <SettingsProvider>
-          {children}
-          <AppToaster />
-          {process.env.VERCEL === "1" ? <Analytics /> : null}
+          <LoadingOverlayProvider>
+            {children}
+            <AppToaster />
+            {process.env.VERCEL === "1" ? <Analytics /> : null}
+          </LoadingOverlayProvider>
         </SettingsProvider>
       </body>
     </html>

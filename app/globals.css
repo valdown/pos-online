@@ -28,6 +28,24 @@
   --font-display: var(--font-display);
 }
 
+@keyframes loader-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes loader-orbit {
+  from {
+    transform: rotate(45deg);
+  }
+  to {
+    transform: rotate(405deg);
+  }
+}
+
 * {
   box-sizing: border-box;
 }
