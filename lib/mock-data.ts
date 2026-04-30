@@ -26,10 +26,9 @@ export type Product = {
   description: string;
   price: number;
   stock: number;
-  sku: string;
-  soldToday: number;
-  status: "Aktif" | "Hampir Habis";
+  isActive: boolean;
   imagePath: string | null;
+  deletedAt?: string | null;
 };
 
 export type CashierInvoiceItem = {
@@ -175,9 +174,7 @@ export const products: Product[] = [
     description: "Espresso, susu steamed, dan caramel drizzle.",
     price: 34000,
     stock: 42,
-    sku: "CB-ESP-014",
-    soldToday: 38,
-    status: "Aktif",
+    isActive: true,
     imagePath: null,
   },
   {
@@ -187,9 +184,7 @@ export const products: Product[] = [
     description: "Body creamy dengan roast cokelat kacang.",
     price: 30000,
     stock: 35,
-    sku: "CB-ESP-003",
-    soldToday: 31,
-    status: "Aktif",
+    isActive: true,
     imagePath: null,
   },
   {
@@ -199,9 +194,7 @@ export const products: Product[] = [
     description: "Profil citrus floral dengan body ringan.",
     price: 36000,
     stock: 16,
-    sku: "CB-MBR-011",
-    soldToday: 14,
-    status: "Aktif",
+    isActive: true,
     imagePath: null,
   },
   {
@@ -211,9 +204,7 @@ export const products: Product[] = [
     description: "Latte susu aren dengan tekstur lembut.",
     price: 32000,
     stock: 28,
-    sku: "CB-NCF-008",
-    soldToday: 23,
-    status: "Aktif",
+    isActive: true,
     imagePath: null,
   },
   {
@@ -223,9 +214,7 @@ export const products: Product[] = [
     description: "Matcha creamy dengan foam vanilla tipis.",
     price: 33000,
     stock: 10,
-    sku: "CB-NCF-004",
-    soldToday: 19,
-    status: "Hampir Habis",
+    isActive: true,
     imagePath: null,
   },
   {
@@ -235,9 +224,7 @@ export const products: Product[] = [
     description: "Burger signature dengan kentang renyah.",
     price: 52000,
     stock: 18,
-    sku: "CB-FOD-021",
-    soldToday: 27,
-    status: "Aktif",
+    isActive: true,
     imagePath: null,
   },
   {
@@ -247,9 +234,7 @@ export const products: Product[] = [
     description: "Butter croissant dengan taburan almond panggang.",
     price: 28000,
     stock: 9,
-    sku: "CB-FOD-017",
-    soldToday: 21,
-    status: "Hampir Habis",
+    isActive: true,
     imagePath: null,
   },
   {
@@ -259,9 +244,7 @@ export const products: Product[] = [
     description: "Espresso blend, susu, dan condensed milk.",
     price: 34000,
     stock: 24,
-    sku: "CB-ESP-019",
-    soldToday: 25,
-    status: "Aktif",
+    isActive: true,
     imagePath: null,
   },
 ];

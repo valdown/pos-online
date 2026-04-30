@@ -17,7 +17,6 @@ import {
   defaultNotificationSettings,
   notificationsFeed as fallbackNotificationsFeed,
   popularItems as fallbackPopularItems,
-  products as fallbackProducts,
   revenueSeries as fallbackRevenueSeries,
   staffMembers as fallbackStaffMembers,
 } from "@/lib/mock-data";
@@ -77,7 +76,11 @@ export async function getProducts() {
     return [] as Product[];
   }
 
-  const { data, error } = await supabase.from("products").select("*").order("name", { ascending: true });
+  const { data, error } = await supabase
+    .from("products")
+    .select("id, name, category, description, price, stock, is_active, image_path, deleted_at")
+    .is("deleted_at", null)
+    .order("name", { ascending: true });
 
   if (error || !data) {
     return [] as Product[];
