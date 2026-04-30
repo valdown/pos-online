@@ -10,6 +10,7 @@ import { z } from "zod";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { useLoadingOverlay } from "@/components/providers/loading-overlay";
 import { BOOTSTRAP_OWNER_EMAIL } from "@/lib/auth";
 
 const loginSchema = z.object({
@@ -23,6 +24,7 @@ export function LoginForm() {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
+  const { startLoading, stopLoading } = useLoadingOverlay();
 
   const form = useForm<LoginValues>({
     resolver: zodResolver(loginSchema),
@@ -33,26 +35,34 @@ export function LoginForm() {
   });
 
   const onSubmit = form.handleSubmit(async (values) => {
-    const response = await fetch("/api/auth/login", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(values),
-    });
+    startLoading();
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(values),
+      });
 
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
-      setAuthError(payload?.error ?? "Login internal gagal. Periksa email dan kata sandi owner.");
-      return;
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        await stopLoading();
+        setAuthError(payload?.error ?? "Login internal gagal. Periksa email dan kata sandi owner.");
+        return;
+      }
+
+      await stopLoading();
+      setAuthError(null);
+      toast.success("Login internal berhasil.", {
+        description: "Session owner aktif dan dashboard siap dipakai.",
+      });
+      router.push("/dashboard");
+      router.refresh();
+    } catch (error) {
+      await stopLoading();
+      setAuthError(error instanceof Error ? error.message : "Login internal gagal. Periksa email dan kata sandi owner.");
     }
-
-    setAuthError(null);
-    toast.success("Login internal berhasil.", {
-      description: "Session owner aktif dan dashboard siap dipakai.",
-    });
-    router.push("/dashboard");
-    router.refresh();
   });
 
   return (
