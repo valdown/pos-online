@@ -4,6 +4,7 @@ import { Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
+import { useLoadingOverlay } from "@/components/providers/loading-overlay";
 import { useSettings } from "@/components/providers/settings";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,14 +13,17 @@ import { normalizeMenuCategories } from "@/lib/menu-categories";
 
 export function MenuCategorySettingsForm() {
   const { appSettings, persistenceMode, setAppSettings } = useSettings();
+  const { startLoading, stopLoading } = useLoadingOverlay();
   const [newCategory, setNewCategory] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function saveCategories(nextCategories: string[]) {
     setSubmitting(true);
+    startLoading();
 
     try {
       await setAppSettings({ ...appSettings, menuCategories: normalizeMenuCategories(nextCategories) });
+      await stopLoading();
       toast.success("Kategori menu diperbarui.", {
         description:
           persistenceMode === "supabase"
@@ -29,6 +33,7 @@ export function MenuCategorySettingsForm() {
               : "Master kategori menu disimpan lokal di browser ini.",
       });
     } catch (error) {
+      await stopLoading();
       toast.error("Kategori menu gagal disimpan.", {
         description: error instanceof Error ? error.message : "Periksa koneksi Supabase dan schema app_settings.",
       });

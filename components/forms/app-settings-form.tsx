@@ -9,6 +9,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useLoadingOverlay } from "@/components/providers/loading-overlay";
 import { useSettings } from "@/components/providers/settings";
 import { Switch } from "@/components/ui/switch";
 import { formatCurrency } from "@/lib/utils";
@@ -38,6 +39,7 @@ type SettingsValues = z.infer<typeof settingsSchema>;
 
 export function AppSettingsForm() {
   const { appSettings, persistenceMode, setAppSettings } = useSettings();
+  const { startLoading, stopLoading } = useLoadingOverlay();
 
   const form = useForm<SettingsValues>({
     resolver: zodResolver(settingsSchema),
@@ -49,8 +51,10 @@ export function AppSettingsForm() {
   }, [appSettings, form]);
 
   const onSubmit = form.handleSubmit(async (values) => {
+    startLoading();
     try {
       await setAppSettings({ ...appSettings, ...values });
+      await stopLoading();
       toast.success("Pengaturan toko diperbarui.", {
         description:
           persistenceMode === "supabase"
@@ -60,6 +64,7 @@ export function AppSettingsForm() {
               : `Pajak ${values.taxRate}% dan modal kas ${formatCurrency(values.openingCash)} tersimpan lokal di browser ini.`,
       });
     } catch (error) {
+      await stopLoading();
       toast.error("Pengaturan toko gagal disimpan.", {
         description: error instanceof Error ? error.message : "Periksa koneksi Supabase dan schema app_settings.",
       });
@@ -139,7 +144,7 @@ export function AppSettingsForm() {
             <Switch checked={form.watch("autoPrintReceipt")} onCheckedChange={(checked) => form.setValue("autoPrintReceipt", checked)} />
           </div>
 
-          <Button type="submit">Simpan pengaturan</Button>
+          <Button type="submit" disabled={form.formState.isSubmitting}>Simpan pengaturan</Button>
         </form>
       </CardContent>
     </Card>

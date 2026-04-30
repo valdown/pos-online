@@ -10,6 +10,7 @@ import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useLoadingOverlay } from "@/components/providers/loading-overlay";
 import { useSettings } from "@/components/providers/settings";
 import { Switch } from "@/components/ui/switch";
 import type { PaymentMethodId } from "@/lib/payment-methods";
@@ -39,6 +40,7 @@ const methodMeta: Record<PaymentMethodId, { title: string; description: string; 
 
 export function PaymentMethodSettingsForm() {
   const { appSettings, persistenceMode, setAppSettings } = useSettings();
+  const { startLoading, stopLoading } = useLoadingOverlay();
 
   const form = useForm<PaymentMethodsValues>({
     resolver: zodResolver(paymentMethodsSchema),
@@ -52,8 +54,10 @@ export function PaymentMethodSettingsForm() {
   }, [appSettings.paymentMethods, form]);
 
   const onSubmit = form.handleSubmit(async (values) => {
+    startLoading();
     try {
       await setAppSettings({ ...appSettings, paymentMethods: values.paymentMethods });
+      await stopLoading();
       toast.success("Metode pembayaran diperbarui.", {
         description:
           persistenceMode === "supabase"
@@ -63,6 +67,7 @@ export function PaymentMethodSettingsForm() {
               : "Konfigurasi metode pembayaran disimpan lokal di browser ini.",
       });
     } catch (error) {
+      await stopLoading();
       toast.error("Metode pembayaran gagal disimpan.", {
         description: error instanceof Error ? error.message : "Periksa koneksi Supabase dan schema app_settings.",
       });
@@ -114,7 +119,7 @@ export function PaymentMethodSettingsForm() {
 
           {form.formState.errors.paymentMethods?.message ? <p className="text-sm font-medium text-[var(--coffee-700)]">{form.formState.errors.paymentMethods.message}</p> : null}
 
-          <Button type="submit">Simpan metode pembayaran</Button>
+          <Button type="submit" disabled={form.formState.isSubmitting}>Simpan metode pembayaran</Button>
         </form>
       </CardContent>
     </Card>
