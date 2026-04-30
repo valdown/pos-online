@@ -1,11 +1,8 @@
-import type { CashierInvoice, CashierInvoiceItem } from "@/lib/mock-data";
+import type { CashierInvoice } from "@/lib/mock-data";
 
 export type SalesOrderItemRow = {
-  product_id: string;
   product_name: string;
-  unit_price: number;
   quantity: number;
-  line_total: number;
 };
 
 export type SalesOrderRow = {
@@ -20,6 +17,11 @@ export type SalesOrderRow = {
   sales_order_items: SalesOrderItemRow[] | null;
 };
 
+export type CashierInvoiceListItem = Omit<CashierInvoice, "items"> & {
+  menuNames: string;
+  totalQuantity: number;
+};
+
 function normalizePaymentMethod(value: string): CashierInvoice["paymentMethod"] {
   if (value === "cash" || value === "debit" || value === "qris") {
     return value;
@@ -28,22 +30,15 @@ function normalizePaymentMethod(value: string): CashierInvoice["paymentMethod"] 
   return "cash";
 }
 
-function mapSalesOrderItemRow(row: SalesOrderItemRow): CashierInvoiceItem {
-  return {
-    productId: row.product_id,
-    productName: row.product_name,
-    unitPrice: row.unit_price,
-    quantity: row.quantity,
-    lineTotal: row.line_total,
-  };
-}
+export function mapSalesOrderRowToCashierInvoiceListItem(row: SalesOrderRow): CashierInvoiceListItem {
+  const items = row.sales_order_items ?? [];
 
-export function mapSalesOrderRowToCashierInvoice(row: SalesOrderRow): CashierInvoice {
   return {
     id: row.id,
     orderNumber: row.order_number,
     createdAt: row.created_at,
-    items: (row.sales_order_items ?? []).map(mapSalesOrderItemRow),
+    menuNames: items.map((item) => item.product_name).join(", "),
+    totalQuantity: items.reduce((sum, item) => sum + item.quantity, 0),
     subtotal: row.subtotal,
     tax: row.tax_amount,
     total: row.total_amount,
@@ -52,6 +47,6 @@ export function mapSalesOrderRowToCashierInvoice(row: SalesOrderRow): CashierInv
   };
 }
 
-export function mapSalesOrderRowsToCashierInvoices(rows: SalesOrderRow[]) {
-  return rows.map(mapSalesOrderRowToCashierInvoice);
+export function mapSalesOrderRowsToCashierInvoiceListItems(rows: SalesOrderRow[]) {
+  return rows.map(mapSalesOrderRowToCashierInvoiceListItem);
 }
