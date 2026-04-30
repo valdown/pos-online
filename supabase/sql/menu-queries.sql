@@ -31,9 +31,9 @@ from public.cashier_snapshot
 where id = 'default';
 
 -- Low stock widget source
-select id, name, stock, status
+select id, name, stock, is_active, image_path, deleted_at
 from public.products
-where status = 'Hampir Habis'
+where deleted_at is null and is_active = true and stock <= 10
 order by stock asc, name asc;
 
 -- =========================================================
@@ -41,13 +41,15 @@ order by stock asc, name asc;
 -- =========================================================
 
 -- Product catalog for POS Kasir
-select id, name, category, price, stock, image_path
+select id, name, category, price, stock, is_active, image_path, deleted_at
 from public.products
+where deleted_at is null and is_active = true
 order by name asc;
 
 -- Product catalog with all mapped fields used by Produk page too
-select id, name, category, description, price, stock, sku, sold_today, status, image_path
+select id, name, category, description, price, stock, is_active, image_path, deleted_at
 from public.products
+where deleted_at is null
 order by name asc;
 
 -- Tax rate used by checkout math and page description
@@ -108,8 +110,9 @@ order by so.created_at desc, soi.product_name asc;
 -- PRODUK
 -- =========================================================
 
-select id, name, description, sku, category, price, stock, sold_today, status
+select id, name, description, category, price, stock, is_active, image_path, deleted_at
 from public.products
+where deleted_at is null
 order by name asc;
 
 -- =========================================================

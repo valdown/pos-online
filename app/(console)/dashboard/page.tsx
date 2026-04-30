@@ -18,7 +18,7 @@ export default async function DashboardPage() {
     getRevenueSeries(),
   ]);
 
-  const lowStockItems = products.filter((product) => product.status === "Hampir Habis");
+  const lowStockItems = products.filter((product) => product.isActive && product.stock <= 10);
 
   return (
     <>
