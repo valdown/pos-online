@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import * as Avatar from "@radix-ui/react-avatar";
@@ -35,6 +36,12 @@ const links = [
 export function AppSidebar({ currentUser }: { currentUser: AppShellUser }) {
   const pathname = usePathname();
   const router = useRouter();
+
+  useEffect(() => {
+    for (const { href } of links) {
+      void router.prefetch(href);
+    }
+  }, [router]);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -77,7 +84,13 @@ export function AppSidebar({ currentUser }: { currentUser: AppShellUser }) {
               const active = pathname === href;
 
               return (
-                <Link key={href} href={href} className={cn("sidebar-item xl:gap-2.5 xl:px-3 xl:py-2.5", active && "sidebar-item-active")}>
+                <Link
+                  key={href}
+                  href={href}
+                  onMouseEnter={() => void router.prefetch(href)}
+                  onFocus={() => void router.prefetch(href)}
+                  className={cn("sidebar-item xl:gap-2.5 xl:px-3 xl:py-2.5", active && "sidebar-item-active")}
+                >
                   <Icon className="size-4 xl:size-3.5" />
                   <span className="xl:text-[0.95rem]">{label}</span>
                 </Link>
