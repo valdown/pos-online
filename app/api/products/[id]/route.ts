@@ -43,12 +43,10 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     ? {
         name: formData.get("name"),
         description: formData.get("description"),
-        sku: formData.get("sku"),
         category: formData.get("category"),
         price: formData.get("price"),
         stock: formData.get("stock"),
-        soldToday: formData.get("soldToday"),
-        status: formData.get("status"),
+        isActive: formData.get("isActive") === "true",
       }
     : null;
   const parsed = productInputSchema.safeParse(body);
@@ -58,10 +56,22 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const { id } = await params;
-  const row = mapProductInputToRow(id, parsed.data);
   let uploadedPath: string | null = null;
 
-  const { data: currentProduct } = await supabase.from("products").select("image_path").eq("id", id).maybeSingle<{ image_path: string | null }>();
+  const { data: currentProduct } = await supabase
+    .from("products")
+    .select("image_path, deleted_at")
+    .eq("id", id)
+    .maybeSingle<{ image_path: string | null; deleted_at: string | null }>();
+
+  if (currentProduct?.deleted_at) {
+    return NextResponse.json({ error: "Produk tidak ditemukan." }, { status: 404 });
+  }
+
+  const row = mapProductInputToRow(id, parsed.data, {
+    imagePath: currentProduct?.image_path ?? null,
+    deletedAt: currentProduct?.deleted_at ?? null,
+  });
 
   if (imageFile && imageFile.size > 0) {
     if (!isAllowedProductImageType(imageFile.type)) {
@@ -87,7 +97,12 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     row.image_path = currentProduct?.image_path ?? null;
   }
 
-  const { data, error } = await supabase.from("products").update(row).eq("id", id).select("*").maybeSingle<ProductRow>();
+  const { data, error } = await supabase
+    .from("products")
+    .update(row)
+    .eq("id", id)
+    .select("id, name, category, description, price, stock, is_active, image_path, deleted_at")
+    .maybeSingle<ProductRow>();
 
   if (error) {
     if (uploadedPath) {
@@ -95,7 +110,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     }
 
     const status = error.code === "23505" ? 409 : 500;
-    const message = error.code === "23505" ? "SKU sudah dipakai produk lain." : "Gagal memperbarui produk.";
+    const message = error.code === "23505" ? "Produk sudah dipakai produk lain." : "Gagal memperbarui produk.";
     return NextResponse.json({ error: message }, { status });
   }
 
@@ -124,15 +139,16 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  const { data: currentProduct } = await supabase.from("products").select("image_path").eq("id", id).maybeSingle<{ image_path: string | null }>();
-  const { error } = await supabase.from("products").delete().eq("id", id);
+  const { data: currentProduct } = await supabase.from("products").select("image_path, deleted_at").eq("id", id).maybeSingle<{ image_path: string | null; deleted_at: string | null }>();
+
+  if (currentProduct?.deleted_at) {
+    return NextResponse.json({ ok: true });
+  }
+
+  const { error } = await supabase.from("products").update({ deleted_at: new Date().toISOString() }).eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: "Gagal menghapus produk." }, { status: 500 });
-  }
-
-  if (currentProduct?.image_path) {
-    await supabase.storage.from(PRODUCT_IMAGES_BUCKET).remove([currentProduct.image_path]);
   }
 
   return NextResponse.json({ ok: true });

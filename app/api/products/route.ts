@@ -43,12 +43,10 @@ export async function POST(request: Request) {
     ? {
         name: formData.get("name"),
         description: formData.get("description"),
-        sku: formData.get("sku"),
         category: formData.get("category"),
         price: formData.get("price"),
         stock: formData.get("stock"),
-        soldToday: formData.get("soldToday"),
-        status: formData.get("status"),
+        isActive: formData.get("isActive") === "true",
       }
     : null;
   const parsed = productInputSchema.safeParse(body);
@@ -84,7 +82,11 @@ export async function POST(request: Request) {
     row.image_path = uploadedPath;
   }
 
-  const { data, error } = await supabase.from("products").insert(row).select("*").single<ProductRow>();
+  const { data, error } = await supabase
+    .from("products")
+    .insert(row)
+    .select("id, name, category, description, price, stock, is_active, image_path, deleted_at")
+    .single<ProductRow>();
 
   if (error) {
     if (uploadedPath) {
@@ -92,7 +94,7 @@ export async function POST(request: Request) {
     }
 
     const status = error.code === "23505" ? 409 : 500;
-    const message = error.code === "23505" ? "SKU sudah dipakai produk lain." : "Gagal menambahkan produk ke database.";
+    const message = error.code === "23505" ? "Produk sudah dipakai produk lain." : "Gagal menambahkan produk ke database.";
     return NextResponse.json({ error: message }, { status });
   }
 

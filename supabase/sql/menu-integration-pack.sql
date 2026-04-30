@@ -4,7 +4,15 @@
 -- This file is safe only after the base tables already exist.
 
 alter table public.sales_orders add column if not exists cashier_name text;
+alter table public.products drop column if exists sku;
+alter table public.products drop column if exists sold_today;
 alter table public.products add column if not exists image_path text;
+alter table public.products add column if not exists deleted_at timestamptz;
+alter table public.products add column if not exists is_active boolean not null default true;
+
+update public.products
+set is_active = true
+where is_active is null;
 
 alter table public.app_settings add column if not exists payment_methods jsonb not null default '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb;
 alter table public.app_settings add column if not exists menu_categories jsonb not null default '["Espresso","Manual Brew","Non Coffee","Makanan"]'::jsonb;
