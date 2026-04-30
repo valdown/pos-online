@@ -5,9 +5,9 @@ import { useRouter } from "next/navigation";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Eye, EyeOff, LockKeyhole, UserRound } from "lucide-react";
 import { useForm } from "react-hook-form";
-import { toast } from "sonner";
 import { z } from "zod";
 
+import { markLoginSuccessRedirect } from "@/components/auth/login-success-feedback";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useLoadingOverlay } from "@/components/providers/loading-overlay";
@@ -52,13 +52,9 @@ export function LoginForm() {
         return;
       }
 
-      await stopLoading();
       setAuthError(null);
-      toast.success("Login internal berhasil.", {
-        description: "Session owner aktif dan dashboard siap dipakai.",
-      });
+      markLoginSuccessRedirect();
       router.push("/dashboard");
-      router.refresh();
     } catch (error) {
       await stopLoading();
       setAuthError(error instanceof Error ? error.message : "Login internal gagal. Periksa email dan kata sandi owner.");
