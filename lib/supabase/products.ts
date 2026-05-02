@@ -47,12 +47,3 @@ export function mapProductInputToRow(id: string, input: ProductInput, options?: 
     deleted_at: options?.deletedAt ?? null,
   };
 }
-
-export function slugifyProductId(name: string) {
-  return name
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .replace(/-{2,}/g, "-");
-}

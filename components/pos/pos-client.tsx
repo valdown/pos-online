@@ -12,6 +12,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { Product, ProductCategory } from "@/lib/mock-data";
 import { getEnabledPaymentMethods, type PaymentMethodId, type PaymentMethodSetting } from "@/lib/payment-methods";
+import { slugifyRoleId } from "@/lib/roles";
 import { getSupabaseUrl } from "@/lib/supabase/config";
 import { getProductImagePublicUrl } from "@/lib/supabase/product-images";
 import { cn, formatCurrency } from "@/lib/utils";
@@ -59,13 +60,14 @@ const productVisuals: Record<string, ProductVisual> = {
 
 function getProductVisual(product: Product): ProductVisual {
   const uploadedImageUrl = getProductImagePublicUrl(product.imagePath, getSupabaseUrl());
+  const normalizedKey = slugifyRoleId(product.name);
 
   if (uploadedImageUrl) {
     return { imageUrl: uploadedImageUrl };
   }
 
   return (
-    productVisuals[product.id] ?? {
+    productVisuals[normalizedKey] ?? {
       imageUrl: "https://images.pexels.com/photos/1855214/pexels-photo-1855214.jpeg?auto=compress&cs=tinysrgb&w=1200",
     }
   );

@@ -8,7 +8,7 @@ import { hasMenuAccess } from "@/lib/internal-permissions";
 import { resolveInternalSessionUser } from "@/lib/internal-auth";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { buildProductImagePath, getProductImageExtension, isAllowedProductImageType, PRODUCT_IMAGES_BUCKET, PRODUCT_IMAGE_MAX_BYTES } from "@/lib/supabase/product-images";
-import { mapProductInputToRow, mapProductRow, productInputSchema, slugifyProductId, type ProductRow } from "@/lib/supabase/products";
+import { mapProductInputToRow, mapProductRow, productInputSchema, type ProductRow } from "@/lib/supabase/products";
 
 async function requireInternalOwner() {
   const cookieStore = await cookies();
@@ -56,8 +56,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Input produk tidak valid." }, { status: 400 });
   }
 
-  const baseId = slugifyProductId(parsed.data.name) || `produk-${Date.now()}`;
-  const candidateId = `${baseId}-${Date.now().toString().slice(-6)}`;
+  const candidateId = crypto.randomUUID();
   const row = mapProductInputToRow(candidateId, parsed.data);
   let uploadedPath: string | null = null;
 
