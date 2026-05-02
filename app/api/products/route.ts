@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { APP_SESSION_COOKIE } from "@/lib/auth";
+import { hasMenuAccess } from "@/lib/internal-permissions";
 import { resolveInternalSessionUser } from "@/lib/internal-auth";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { buildProductImagePath, getProductImageExtension, isAllowedProductImageType, PRODUCT_IMAGES_BUCKET, PRODUCT_IMAGE_MAX_BYTES } from "@/lib/supabase/product-images";
@@ -17,7 +18,7 @@ async function requireInternalOwner() {
     return { error: NextResponse.json({ error: "Session internal tidak ditemukan. Login ulang dulu." }, { status: 401 }) };
   }
 
-  if (currentUser.access !== "Penuh" && currentUser.role !== "Owner") {
+  if (!hasMenuAccess(currentUser, "produk", "manage")) {
     return { error: NextResponse.json({ error: "Anda tidak punya akses untuk mengelola produk." }, { status: 403 }) };
   }
 
@@ -83,7 +84,7 @@ export async function POST(request: Request) {
   }
 
   const { data, error } = await supabase
-    .from("products")
+    .from("mst_products")
     .insert(row)
     .select("id, name, category, description, price, stock, is_active, image_path, deleted_at")
     .single<ProductRow>();

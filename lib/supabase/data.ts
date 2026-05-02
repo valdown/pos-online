@@ -58,15 +58,15 @@ async function selectRows<T>(table: string, fallback: T[], orderBy = "sort_order
 }
 
 export async function getDashboardStats() {
-  return selectRows<DashboardStatRow>("dashboard_stats", fallbackDashboardStats);
+  return selectRows<DashboardStatRow>("mst_dashboard_stats", fallbackDashboardStats);
 }
 
 export async function getRevenueSeries() {
-  return selectRows<RevenuePointRow>("revenue_points", fallbackRevenueSeries);
+  return selectRows<RevenuePointRow>("mst_revenue_points", fallbackRevenueSeries);
 }
 
 export async function getPopularItems() {
-  return selectRows<PopularItemRow>("popular_items", fallbackPopularItems);
+  return selectRows<PopularItemRow>("mst_popular_items", fallbackPopularItems);
 }
 
 export async function getProducts() {
@@ -77,7 +77,7 @@ export async function getProducts() {
   }
 
   const { data, error } = await supabase
-    .from("products")
+    .from("mst_products")
     .select("id, name, category, description, price, stock, is_active, image_path, deleted_at")
     .is("deleted_at", null)
     .order("name", { ascending: true });
@@ -91,11 +91,11 @@ export async function getProducts() {
 }
 
 export async function getStaffMembers() {
-  return selectRows<StaffMemberRow>("staff_members", fallbackStaffMembers, "name");
+  return selectRows<StaffMemberRow>("mst_staff_members", fallbackStaffMembers, "name");
 }
 
 export async function getNotificationFeed() {
-  return selectRows<NotificationFeedRow>("notification_feed", fallbackNotificationsFeed);
+  return selectRows<NotificationFeedRow>("mst_notification_feed", fallbackNotificationsFeed);
 }
 
 export async function getCashierSnapshot() {
@@ -106,7 +106,7 @@ export async function getCashierSnapshot() {
   }
 
   const { data, error } = await supabase
-    .from("cashier_snapshot")
+    .from("mst_cashier_snapshot")
     .select("active_cashiers, active_time, highlighted_table")
     .eq("id", SUPABASE_SETTINGS_ROW_ID)
     .maybeSingle<CashierSnapshotRow>();
@@ -129,7 +129,7 @@ export async function getServerAppSettings() {
     return defaultAppSettings;
   }
 
-  const { data, error } = await supabase.from("app_settings").select("*").eq("id", SUPABASE_SETTINGS_ROW_ID).maybeSingle<AppSettingsRow>();
+  const { data, error } = await supabase.from("mst_app_settings").select("*").eq("id", SUPABASE_SETTINGS_ROW_ID).maybeSingle<AppSettingsRow>();
 
   if (error || !data) {
     return defaultAppSettings;
@@ -146,7 +146,7 @@ export async function getServerNotificationSettings() {
   }
 
   const { data, error } = await supabase
-    .from("notification_settings")
+    .from("mst_notification_settings")
     .select("*")
     .eq("id", SUPABASE_SETTINGS_ROW_ID)
     .maybeSingle<NotificationSettingsRow>();

@@ -23,7 +23,7 @@ export default function NotificationsPage() {
     }
 
     void (async () => {
-      const { data } = await supabaseClient.from("notification_feed").select("*").order("sort_order", { ascending: true });
+      const { data } = await supabaseClient.from("mst_notification_feed").select("*").order("sort_order", { ascending: true });
 
       if (data?.length) {
         setFeed(data as NotificationFeedItem[]);
@@ -38,7 +38,7 @@ export default function NotificationsPage() {
         title="Notifikasi"
         description={
           persistenceMode === "supabase"
-            ? "Atur broadcast alert penting dan simpan konfigurasinya ke Supabase. Feed juga akan dibaca dari tabel notification_feed bila tersedia."
+            ? "Atur broadcast alert penting dan simpan konfigurasinya ke Supabase. Feed juga akan dibaca dari tabel mst_notification_feed bila tersedia."
             : persistenceMode === "supabase-fallback"
               ? "Supabase terdeteksi, tetapi pembacaan atau sinkronisasi terakhir gagal. Feed dan form sementara memakai fallback lokal agar workflow tetap jalan."
               : "Atur broadcast alert penting dengan form lokal yang tersimpan di browser ini untuk preview workflow notifikasi operasional."

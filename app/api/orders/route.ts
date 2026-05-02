@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 
 import { APP_SESSION_COOKIE } from "@/lib/auth";
+import { hasMenuAccess } from "@/lib/internal-permissions";
 import { resolveInternalSessionUser } from "@/lib/internal-auth";
 import { getEnabledPaymentMethods, normalizePaymentMethods, type PaymentMethodId, type PaymentMethodSetting } from "@/lib/payment-methods";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
@@ -41,7 +42,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Session internal tidak ditemukan. Login ulang dulu." }, { status: 401 });
   }
 
-  const { data: appSettings } = await supabase.from("app_settings").select("payment_methods").eq("id", "default").maybeSingle<AppSettingsPaymentRow>();
+  if (!hasMenuAccess(currentUser, "kasir", "create")) {
+    return NextResponse.json({ error: "Anda tidak punya akses untuk menjalankan transaksi kasir." }, { status: 403 });
+  }
+
+  const { data: appSettings } = await supabase.from("mst_app_settings").select("payment_methods").eq("id", "default").maybeSingle<AppSettingsPaymentRow>();
   const enabledPaymentMethodIds = getEnabledPaymentMethods(normalizePaymentMethods(appSettings?.payment_methods)).map((method) => method.id);
 
   if (!enabledPaymentMethodIds.includes(payload.paymentMethod as PaymentMethodId)) {
@@ -49,7 +54,7 @@ export async function POST(request: Request) {
   }
 
   const { data: order, error: orderError } = await supabase
-    .from("sales_orders")
+    .from("trx_sales_orders")
     .insert({
       order_number: orderNumber,
       payment_method: payload.paymentMethod,
@@ -66,7 +71,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Gagal menyimpan order ke Supabase. Jalankan schema SQL terlebih dahulu." }, { status: 500 });
   }
 
-  const { error: itemsError } = await supabase.from("sales_order_items").insert(
+  const { error: itemsError } = await supabase.from("trx_sales_order_items").insert(
     payload.items.map((item) => ({
       order_id: order.id,
       product_id: item.productId,

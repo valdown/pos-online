@@ -20,28 +20,31 @@ import {
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { hasMenuAccess } from "@/lib/internal-permissions";
+import { type StaffMenuKey } from "@/lib/roles";
 import type { AppShellUser } from "@/lib/auth";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/kasir", label: "POS Kasir", icon: ReceiptText },
-  { href: "/invoice-kasir", label: "Invoice Kasir", icon: FileText },
-  { href: "/produk", label: "Produk", icon: Package2 },
-  { href: "/staf", label: "Staf", icon: Users },
-  { href: "/notifikasi", label: "Notifikasi", icon: BellRing },
-  { href: "/pengaturan", label: "Pengaturan", icon: Settings },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, menuKey: "dashboard" },
+  { href: "/kasir", label: "POS Kasir", icon: ReceiptText, menuKey: "kasir" },
+  { href: "/invoice-kasir", label: "Invoice Kasir", icon: FileText, menuKey: "invoice-kasir" },
+  { href: "/produk", label: "Produk", icon: Package2, menuKey: "produk" },
+  { href: "/staf", label: "Staf", icon: Users, menuKey: "staf" },
+  { href: "/notifikasi", label: "Notifikasi", icon: BellRing, menuKey: "notifikasi" },
+  { href: "/pengaturan", label: "Pengaturan", icon: Settings, menuKey: "pengaturan" },
 ] as const;
 
 export function AppSidebar({ currentUser }: { currentUser: AppShellUser }) {
   const pathname = usePathname();
   const router = useRouter();
+  const visibleLinks = links.filter((link) => hasMenuAccess(currentUser, link.menuKey as StaffMenuKey, "read"));
 
   useEffect(() => {
-    for (const { href } of links) {
+    for (const { href } of visibleLinks) {
       void router.prefetch(href);
     }
-  }, [router]);
+  }, [router, visibleLinks]);
 
   const handleLogout = async () => {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -80,7 +83,7 @@ export function AppSidebar({ currentUser }: { currentUser: AppShellUser }) {
         <div className="space-y-4 xl:space-y-2.5">
           <p className="px-3 text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)] xl:px-2.5 xl:text-[11px] xl:tracking-[0.24em]">Menu Utama</p>
           <nav className="space-y-2 xl:space-y-1">
-            {links.map(({ href, label, icon: Icon }) => {
+            {visibleLinks.map(({ href, label, icon: Icon }) => {
               const active = pathname === href;
 
               return (

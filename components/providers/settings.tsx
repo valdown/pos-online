@@ -85,9 +85,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
     void (async () => {
       const [{ data: appData, error: appError }, { data: notificationData, error: notificationError }] = await Promise.all([
-        supabaseClient.from("app_settings").select("*").eq("id", SUPABASE_SETTINGS_ROW_ID).maybeSingle<AppSettingsRow>(),
+        supabaseClient.from("mst_app_settings").select("*").eq("id", SUPABASE_SETTINGS_ROW_ID).maybeSingle<AppSettingsRow>(),
         supabaseClient
-          .from("notification_settings")
+          .from("mst_notification_settings")
           .select("*")
           .eq("id", SUPABASE_SETTINGS_ROW_ID)
           .maybeSingle<NotificationSettingsRow>(),
@@ -124,7 +124,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         setAppSettingsState(normalizedSettings);
         window.localStorage.setItem(APP_SETTINGS_STORAGE_KEY, JSON.stringify(normalizedSettings));
         if (supabaseClient) {
-          const { error } = await supabaseClient.from("app_settings").upsert(mapAppSettingsModelToRow(normalizedSettings));
+          const { error } = await supabaseClient.from("mst_app_settings").upsert(mapAppSettingsModelToRow(normalizedSettings));
 
           if (error) {
             setPersistenceMode("supabase-fallback");
@@ -141,7 +141,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         setNotificationSettingsState(settings);
         window.localStorage.setItem(NOTIFICATION_SETTINGS_STORAGE_KEY, JSON.stringify(settings));
         if (supabaseClient) {
-          const { error } = await supabaseClient.from("notification_settings").upsert(mapNotificationSettingsModelToRow(settings));
+          const { error } = await supabaseClient.from("mst_notification_settings").upsert(mapNotificationSettingsModelToRow(settings));
 
           if (error) {
             setPersistenceMode("supabase-fallback");

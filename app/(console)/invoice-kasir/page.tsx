@@ -12,9 +12,9 @@ async function getCashierInvoices() {
   }
 
   const { data, error } = await supabase
-    .from("sales_orders")
+    .from("trx_sales_orders")
     .select(
-      "id, order_number, payment_method, subtotal, tax_amount, total_amount, created_at, cashier_name, sales_order_items(product_name, quantity)"
+      "id, order_number, payment_method, subtotal, tax_amount, total_amount, created_at, cashier_name, sales_order_items:trx_sales_order_items(product_name, quantity)"
     )
     .order("created_at", { ascending: false });
 

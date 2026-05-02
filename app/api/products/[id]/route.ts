@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 
 import { APP_SESSION_COOKIE } from "@/lib/auth";
+import { hasMenuAccess } from "@/lib/internal-permissions";
 import { resolveInternalSessionUser } from "@/lib/internal-auth";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 import { buildProductImagePath, getProductImageExtension, isAllowedProductImageType, PRODUCT_IMAGES_BUCKET, PRODUCT_IMAGE_MAX_BYTES } from "@/lib/supabase/product-images";
@@ -17,7 +18,7 @@ async function requireInternalOwner() {
     return { error: NextResponse.json({ error: "Session internal tidak ditemukan. Login ulang dulu." }, { status: 401 }) };
   }
 
-  if (currentUser.access !== "Penuh" && currentUser.role !== "Owner") {
+  if (!hasMenuAccess(currentUser, "produk", "manage")) {
     return { error: NextResponse.json({ error: "Anda tidak punya akses untuk mengelola produk." }, { status: 403 }) };
   }
 
@@ -59,7 +60,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   let uploadedPath: string | null = null;
 
   const { data: currentProduct } = await supabase
-    .from("products")
+    .from("mst_products")
     .select("image_path, deleted_at")
     .eq("id", id)
     .maybeSingle<{ image_path: string | null; deleted_at: string | null }>();
@@ -98,7 +99,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
   }
 
   const { data, error } = await supabase
-    .from("products")
+    .from("mst_products")
     .update(row)
     .eq("id", id)
     .select("id, name, category, description, price, stock, is_active, image_path, deleted_at")
@@ -139,13 +140,13 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   }
 
   const { id } = await params;
-  const { data: currentProduct } = await supabase.from("products").select("image_path, deleted_at").eq("id", id).maybeSingle<{ image_path: string | null; deleted_at: string | null }>();
+  const { data: currentProduct } = await supabase.from("mst_products").select("image_path, deleted_at").eq("id", id).maybeSingle<{ image_path: string | null; deleted_at: string | null }>();
 
   if (currentProduct?.deleted_at) {
     return NextResponse.json({ ok: true });
   }
 
-  const { error } = await supabase.from("products").update({ deleted_at: new Date().toISOString() }).eq("id", id);
+  const { error } = await supabase.from("mst_products").update({ deleted_at: new Date().toISOString() }).eq("id", id);
 
   if (error) {
     return NextResponse.json({ error: "Gagal menghapus produk." }, { status: 500 });
