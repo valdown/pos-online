@@ -55,3 +55,12 @@ Rollback helper:
 - Maximum target file size after browser compression:
   - `1MB`
 - Product rows store the storage object path in `products.image_path`
+
+## Product ID UUID migration
+
+- Existing DB UUID migration scripts:
+  - `sql/product-id-uuid-migration.sql`
+  - `sql/product-id-uuid-verify.sql`
+  - `sql/product-id-uuid-rollback.sql`
+- This migration converts `mst_products.id` and `trx_sales_order_items.product_id` from text IDs to UUIDs.
+- Existing `image_path` values are preserved; new uploads will naturally use UUID-based product IDs in the object path.
