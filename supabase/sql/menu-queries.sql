@@ -7,32 +7,32 @@
 
 -- KPI cards
 select sort_order, title, value, delta, description, icon
-from public.dashboard_stats
+from public.mst_dashboard_stats
 order by sort_order asc;
 
 -- Revenue chart
 select sort_order, day, revenue
-from public.revenue_points
+from public.mst_revenue_points
 order by sort_order asc;
 
 -- Popular items chart
 select sort_order, name, orders, share
-from public.popular_items
+from public.mst_popular_items
 order by sort_order asc;
 
 -- Notification feed used in dashboard and notifikasi
 select id, sort_order, title, message, time, channel, tone
-from public.notification_feed
+from public.mst_notification_feed
 order by sort_order asc;
 
 -- Cashier snapshot
 select id, active_cashiers, active_time, highlighted_table
-from public.cashier_snapshot
+from public.mst_cashier_snapshot
 where id = 'default';
 
 -- Low stock widget source
 select id, name, stock, is_active, image_path, deleted_at
-from public.products
+from public.mst_products
 where deleted_at is null and is_active = true and stock <= 10
 order by stock asc, name asc;
 
@@ -42,31 +42,31 @@ order by stock asc, name asc;
 
 -- Product catalog for POS Kasir
 select id, name, category, price, stock, is_active, image_path, deleted_at
-from public.products
+from public.mst_products
 where deleted_at is null and is_active = true
 order by name asc;
 
 -- Product catalog with all mapped fields used by Produk page too
 select id, name, category, description, price, stock, is_active, image_path, deleted_at
-from public.products
+from public.mst_products
 where deleted_at is null
 order by name asc;
 
 -- Tax rate used by checkout math and page description
 select id, store_name, branch_name, tax_rate, service_fee
-from public.app_settings
+from public.mst_app_settings
 where id = 'default';
 
 -- Latest cashier transactions written from POS checkout
 select id, order_number, payment_method, subtotal, tax_amount, total_amount, cashier_name, created_at
-from public.sales_orders
+from public.trx_sales_orders
 order by created_at desc
 limit 20;
 
 -- Item rows for the latest cashier transactions
 select soi.order_id, soi.product_id, soi.product_name, soi.unit_price, soi.quantity, soi.line_total
-from public.sales_order_items soi
-join public.sales_orders so on so.id = soi.order_id
+from public.trx_sales_order_items soi
+join public.trx_sales_orders so on so.id = soi.order_id
 order by so.created_at desc, soi.product_name asc
 limit 50;
 
@@ -86,8 +86,8 @@ select
   so.created_at,
   coalesce(string_agg(soi.product_name, ', ' order by soi.product_name), '-') as menu_names,
   coalesce(sum(soi.quantity), 0) as total_quantity
-from public.sales_orders so
-left join public.sales_order_items soi on soi.order_id = so.id
+from public.trx_sales_orders so
+left join public.trx_sales_order_items soi on soi.order_id = so.id
 group by so.id, so.order_number, so.payment_method, so.subtotal, so.tax_amount, so.total_amount, so.cashier_name, so.created_at
 order by so.created_at desc;
 
@@ -102,8 +102,8 @@ select
   soi.unit_price,
   soi.quantity,
   soi.line_total
-from public.sales_orders so
-join public.sales_order_items soi on soi.order_id = so.id
+from public.trx_sales_orders so
+join public.trx_sales_order_items soi on soi.order_id = so.id
 order by so.created_at desc, soi.product_name asc;
 
 -- =========================================================
@@ -111,7 +111,7 @@ order by so.created_at desc, soi.product_name asc;
 -- =========================================================
 
 select id, name, description, category, price, stock, is_active, image_path, deleted_at
-from public.products
+from public.mst_products
 where deleted_at is null
 order by name asc;
 
@@ -127,11 +127,11 @@ select
   sm.email,
   '[managed-by-internal-auth]' as pass_word,
   sm.access,
-  sm.phone,
+  case when coalesce(sc.is_active, true) then 'Aktif' else 'Tidak Aktif' end as status_akun,
   case
     when exists (
       select 1
-      from public.app_sessions aps
+      from public.trx_app_sessions aps
       where aps.staff_id = sm.id
         and aps.revoked_at is null
         and aps.expires_at > now()
@@ -139,8 +139,13 @@ select
     ) then 'Online'
     when sm.status = 'Istirahat' then 'Istirahat'
     else 'Off'
-  end as status
-from public.staff_members sm
+  end as status_online,
+  sm.created_at,
+  sm.created_by,
+  sm.updated_at,
+  sm.updated_by
+from public.mst_staff_members sm
+left join public.mst_staff_credentials sc on sc.staff_id = sm.id
 order by sm.name asc;
 
 -- Admin-only diagnostic query. This shows the internal password hash,
@@ -152,11 +157,11 @@ select
   sm.email,
   sc.password_hash,
   sm.access,
-  sm.phone,
+  case when coalesce(sc.is_active, true) then 'Aktif' else 'Tidak Aktif' end as status_akun,
   case
     when exists (
       select 1
-      from public.app_sessions aps
+      from public.trx_app_sessions aps
       where aps.staff_id = sm.id
         and aps.revoked_at is null
         and aps.expires_at > now()
@@ -164,9 +169,13 @@ select
     ) then 'Online'
     when sm.status = 'Istirahat' then 'Istirahat'
     else 'Off'
-  end as status
-from public.staff_members sm
-left join public.staff_credentials sc on sc.staff_id = sm.id
+  end as status_online,
+  sm.created_at,
+  sm.created_by,
+  sm.updated_at,
+  sm.updated_by
+from public.mst_staff_members sm
+left join public.mst_staff_credentials sc on sc.staff_id = sm.id
 order by sm.name asc;
 
 -- Session/activity log for operational tracing.
@@ -183,9 +192,18 @@ select
     when aps.revoked_at is null and aps.expires_at > now() and aps.last_seen_at >= now() - interval '5 minutes' then 'Online'
     else 'Off'
   end as status
-from public.app_sessions aps
-join public.staff_members sm on sm.id = aps.staff_id
+from public.trx_app_sessions aps
+join public.mst_staff_members sm on sm.id = aps.staff_id
 order by aps.created_at desc;
+
+-- Active staff role master data used by Pengaturan > Konfigurasi Role
+select id, name, sort_order, is_active
+from public.mst_staff_roles
+order by sort_order asc, name asc;
+
+select role_id, menu_key, access_level
+from public.mst_staff_role_permissions
+order by role_id asc, menu_key asc;
 
 -- =========================================================
 -- NOTIFIKASI
@@ -193,12 +211,12 @@ order by aps.created_at desc;
 
 -- Notification form values
 select id, telegram_enabled, bot_token, chat_id, digest_frequency, low_stock_alert, cashier_summary, refund_alert
-from public.notification_settings
+from public.mst_notification_settings
 where id = 'default';
 
 -- Notification feed panel
 select id, sort_order, title, message, time, channel, tone
-from public.notification_feed
+from public.mst_notification_feed
 order by sort_order asc;
 
 -- =========================================================
@@ -218,17 +236,17 @@ select
   bank_account_number,
   opening_cash,
   auto_print_receipt
-from public.app_settings
+from public.mst_app_settings
 where id = 'default';
 
 -- Payment method settings from app_settings
 select id, payment_methods
-from public.app_settings
+from public.mst_app_settings
 where id = 'default';
 
 -- Menu category settings from app_settings
 select id, menu_categories
-from public.app_settings
+from public.mst_app_settings
 where id = 'default';
 
 -- =========================================================
@@ -236,22 +254,22 @@ where id = 'default';
 -- =========================================================
 
 -- Verify row counts across menu tables
-select 'dashboard_stats' as table_name, count(*) as total_rows from public.dashboard_stats
+select 'mst_dashboard_stats' as table_name, count(*) as total_rows from public.mst_dashboard_stats
 union all
-select 'revenue_points', count(*) from public.revenue_points
+select 'mst_revenue_points', count(*) from public.mst_revenue_points
 union all
-select 'popular_items', count(*) from public.popular_items
+select 'mst_popular_items', count(*) from public.mst_popular_items
 union all
-select 'products', count(*) from public.products
+select 'mst_products', count(*) from public.mst_products
 union all
-select 'staff_members', count(*) from public.staff_members
+select 'mst_staff_members', count(*) from public.mst_staff_members
 union all
-select 'notification_feed', count(*) from public.notification_feed
+select 'mst_notification_feed', count(*) from public.mst_notification_feed
 union all
-select 'app_settings', count(*) from public.app_settings
+select 'mst_app_settings', count(*) from public.mst_app_settings
 union all
-select 'notification_settings', count(*) from public.notification_settings
+select 'mst_notification_settings', count(*) from public.mst_notification_settings
 union all
-select 'sales_orders', count(*) from public.sales_orders
+select 'trx_sales_orders', count(*) from public.trx_sales_orders
 union all
-select 'sales_order_items', count(*) from public.sales_order_items;
+select 'trx_sales_order_items', count(*) from public.trx_sales_order_items;

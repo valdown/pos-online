@@ -2,26 +2,26 @@
 -- Run this once on an existing database before re-running schema seeds if you already see duplicate cards.
 -- Skip this file if your dashboard tables are already clean.
 
-delete from public.dashboard_stats a
-using public.dashboard_stats b
+delete from public.mst_dashboard_stats a
+using public.mst_dashboard_stats b
 where a.id < b.id
   and a.sort_order = b.sort_order;
 
-delete from public.revenue_points a
-using public.revenue_points b
+delete from public.mst_revenue_points a
+using public.mst_revenue_points b
 where a.id < b.id
   and a.sort_order = b.sort_order;
 
-delete from public.popular_items a
-using public.popular_items b
+delete from public.mst_popular_items a
+using public.mst_popular_items b
 where a.id < b.id
   and a.sort_order = b.sort_order;
 
-create unique index if not exists idx_dashboard_stats_sort_order on public.dashboard_stats (sort_order);
-create unique index if not exists idx_revenue_points_sort_order on public.revenue_points (sort_order);
-create unique index if not exists idx_popular_items_sort_order on public.popular_items (sort_order);
+create unique index if not exists idx_mst_dashboard_stats_sort_order on public.mst_dashboard_stats (sort_order);
+create unique index if not exists idx_mst_revenue_points_sort_order on public.mst_revenue_points (sort_order);
+create unique index if not exists idx_mst_popular_items_sort_order on public.mst_popular_items (sort_order);
 
-insert into public.dashboard_stats (sort_order, title, value, delta, description, icon)
+insert into public.mst_dashboard_stats (sort_order, title, value, delta, description, icon)
 values
   (1, 'Total Pendapatan', 'Rp 18.420.000', '+12,4%', 'naik dibanding minggu lalu', 'wallet'),
   (2, 'Pesanan Selesai', '312', '+28 order', 'dengan SLA tersaji 6 menit', 'badge-check'),
@@ -34,7 +34,7 @@ on conflict (sort_order) do update set
   description = excluded.description,
   icon = excluded.icon;
 
-insert into public.revenue_points (sort_order, day, revenue)
+insert into public.mst_revenue_points (sort_order, day, revenue)
 values
   (1, 'Sen', 2200000),
   (2, 'Sel', 2850000),
@@ -47,7 +47,7 @@ on conflict (sort_order) do update set
   day = excluded.day,
   revenue = excluded.revenue;
 
-insert into public.popular_items (sort_order, name, orders, share)
+insert into public.mst_popular_items (sort_order, name, orders, share)
 values
   (1, 'Caramel Macchiato', 124, 34),
   (2, 'Beef Burger & Chips', 96, 26),

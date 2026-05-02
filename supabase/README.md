@@ -13,6 +13,18 @@ For an existing database, use this order:
 2. `schema.sql`
 3. `sql/menu-queries.sql` only for manual verification.
 
+## Existing database rename to `mst_*` / `trx_*`
+
+If you are migrating an existing database from the legacy table names to the new naming convention:
+
+1. `sql/rename-mst-trx.sql`
+2. deploy the app code that already uses the renamed tables
+3. `sql/rename-mst-trx-verify.sql`
+
+Rollback helper:
+
+- `sql/rename-mst-trx-rollback.sql`
+
 ## Helper files
 
 - `sql/internal-owner-auth.sql`
