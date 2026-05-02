@@ -1,6 +1,6 @@
 create extension if not exists pgcrypto;
 
-create table if not exists public.dashboard_stats (
+create table if not exists public.mst_dashboard_stats (
   id uuid primary key default gen_random_uuid(),
   sort_order integer not null default 0,
   title text not null,
@@ -10,14 +10,14 @@ create table if not exists public.dashboard_stats (
   icon text not null check (icon in ('wallet', 'badge-check', 'receipt', 'package'))
 );
 
-create table if not exists public.revenue_points (
+create table if not exists public.mst_revenue_points (
   id uuid primary key default gen_random_uuid(),
   sort_order integer not null default 0,
   day text not null,
   revenue integer not null default 0
 );
 
-create table if not exists public.popular_items (
+create table if not exists public.mst_popular_items (
   id uuid primary key default gen_random_uuid(),
   sort_order integer not null default 0,
   name text not null,
@@ -25,26 +25,26 @@ create table if not exists public.popular_items (
   share integer not null default 0
 );
 
-delete from public.dashboard_stats a
-using public.dashboard_stats b
+delete from public.mst_dashboard_stats a
+using public.mst_dashboard_stats b
 where a.id < b.id
   and a.sort_order = b.sort_order;
 
-delete from public.revenue_points a
-using public.revenue_points b
+delete from public.mst_revenue_points a
+using public.mst_revenue_points b
 where a.id < b.id
   and a.sort_order = b.sort_order;
 
-delete from public.popular_items a
-using public.popular_items b
+delete from public.mst_popular_items a
+using public.mst_popular_items b
 where a.id < b.id
   and a.sort_order = b.sort_order;
 
-create unique index if not exists idx_dashboard_stats_sort_order on public.dashboard_stats (sort_order);
-create unique index if not exists idx_revenue_points_sort_order on public.revenue_points (sort_order);
-create unique index if not exists idx_popular_items_sort_order on public.popular_items (sort_order);
+create unique index if not exists idx_mst_dashboard_stats_sort_order on public.mst_dashboard_stats (sort_order);
+create unique index if not exists idx_mst_revenue_points_sort_order on public.mst_revenue_points (sort_order);
+create unique index if not exists idx_mst_popular_items_sort_order on public.mst_popular_items (sort_order);
 
-create table if not exists public.products (
+create table if not exists public.mst_products (
   id text primary key,
   name text not null,
   category text not null,
@@ -56,12 +56,12 @@ create table if not exists public.products (
   deleted_at timestamptz
 );
 
-alter table public.products drop column if exists sku;
-alter table public.products drop column if exists sold_today;
-alter table public.products add column if not exists image_path text;
-alter table public.products add column if not exists deleted_at timestamptz;
-alter table public.products add column if not exists is_active boolean not null default true;
-update public.products set is_active = true where is_active is null;
+alter table public.mst_products drop column if exists sku;
+alter table public.mst_products drop column if exists sold_today;
+alter table public.mst_products add column if not exists image_path text;
+alter table public.mst_products add column if not exists deleted_at timestamptz;
+alter table public.mst_products add column if not exists is_active boolean not null default true;
+update public.mst_products set is_active = true where is_active is null;
 
 insert into storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 values ('product-images', 'product-images', true, 1048576, array['image/jpeg', 'image/webp'])
@@ -76,18 +76,19 @@ on conflict (id) do update set
 drop policy if exists public_read_product_images on storage.objects;
 create policy public_read_product_images on storage.objects for select using (bucket_id = 'product-images');
 
-create table if not exists public.staff_members (
+create table if not exists public.mst_staff_members (
   id text primary key,
   name text not null,
   role text not null,
   access text not null,
-  shift text not null,
-  phone text not null,
   status text not null check (status in ('Online', 'Istirahat', 'Off'))
 );
 
-create table if not exists public.staff_credentials (
-  staff_id text primary key references public.staff_members (id) on delete cascade,
+alter table public.mst_staff_members drop column if exists shift;
+alter table public.mst_staff_members drop column if exists phone;
+
+create table if not exists public.mst_staff_credentials (
+  staff_id text primary key references public.mst_staff_members (id) on delete cascade,
   password_hash text not null,
   is_owner boolean not null default false,
   is_active boolean not null default true,
@@ -96,9 +97,9 @@ create table if not exists public.staff_credentials (
   updated_at timestamptz not null default now()
 );
 
-create table if not exists public.app_sessions (
+create table if not exists public.trx_app_sessions (
   id uuid primary key default gen_random_uuid(),
-  staff_id text not null references public.staff_members (id) on delete cascade,
+  staff_id text not null references public.mst_staff_members (id) on delete cascade,
   token_hash text not null unique,
   expires_at timestamptz not null,
   last_seen_at timestamptz not null default now(),
@@ -108,19 +109,37 @@ create table if not exists public.app_sessions (
   created_at timestamptz not null default now()
 );
 
-create index if not exists idx_app_sessions_staff_id on public.app_sessions (staff_id);
-create index if not exists idx_app_sessions_expires_at on public.app_sessions (expires_at);
+create index if not exists idx_trx_app_sessions_staff_id on public.trx_app_sessions (staff_id);
+create index if not exists idx_trx_app_sessions_expires_at on public.trx_app_sessions (expires_at);
 
-alter table public.staff_members add column if not exists auth_user_id uuid unique references auth.users (id) on delete set null;
-alter table public.staff_members add column if not exists email text unique;
-alter table public.staff_members add column if not exists last_seen_at timestamptz;
-alter table public.staff_members add column if not exists last_login_at timestamptz;
-alter table public.staff_members add column if not exists last_logout_at timestamptz;
-create unique index if not exists idx_staff_members_id_auth_user_id on public.staff_members (id, auth_user_id);
+alter table public.mst_staff_members add column if not exists auth_user_id uuid unique references auth.users (id) on delete set null;
+alter table public.mst_staff_members add column if not exists email text unique;
+alter table public.mst_staff_members add column if not exists created_at timestamptz;
+alter table public.mst_staff_members add column if not exists created_by text;
+alter table public.mst_staff_members add column if not exists last_seen_at timestamptz;
+alter table public.mst_staff_members add column if not exists last_login_at timestamptz;
+alter table public.mst_staff_members add column if not exists last_logout_at timestamptz;
+alter table public.mst_staff_members add column if not exists updated_at timestamptz;
+alter table public.mst_staff_members add column if not exists updated_by text;
+update public.mst_staff_members
+set created_at = coalesce(last_login_at, last_logout_at, last_seen_at, now())
+where created_at is null;
+update public.mst_staff_members
+set updated_at = coalesce(updated_at, created_at, now())
+where updated_at is null;
+alter table public.mst_staff_members alter column created_at set default now();
+alter table public.mst_staff_members alter column created_at set not null;
+alter table public.mst_staff_members alter column updated_at set default now();
+alter table public.mst_staff_members alter column updated_at set not null;
+alter table public.mst_staff_members drop constraint if exists mst_staff_members_created_by_fkey;
+alter table public.mst_staff_members add constraint mst_staff_members_created_by_fkey foreign key (created_by) references public.mst_staff_members (id) on delete set null;
+alter table public.mst_staff_members drop constraint if exists mst_staff_members_updated_by_fkey;
+alter table public.mst_staff_members add constraint mst_staff_members_updated_by_fkey foreign key (updated_by) references public.mst_staff_members (id) on delete set null;
+create unique index if not exists idx_mst_staff_members_id_auth_user_id on public.mst_staff_members (id, auth_user_id);
 
-create table if not exists public.staff_session_logs (
+create table if not exists public.trx_staff_session_logs (
   id uuid primary key default gen_random_uuid(),
-  staff_id text not null references public.staff_members (id) on delete cascade,
+  staff_id text not null references public.mst_staff_members (id) on delete cascade,
   auth_user_id uuid not null references auth.users (id) on delete cascade,
   session_id uuid,
   logged_in_at timestamptz not null default now(),
@@ -129,16 +148,16 @@ create table if not exists public.staff_session_logs (
   created_at timestamptz not null default now()
 );
 
-create unique index if not exists idx_staff_session_logs_staff_auth_session on public.staff_session_logs (staff_id, auth_user_id, session_id);
+create unique index if not exists idx_trx_staff_session_logs_staff_auth_session on public.trx_staff_session_logs (staff_id, auth_user_id, session_id);
 
-alter table public.staff_session_logs drop constraint if exists staff_session_logs_staff_auth_match;
-alter table public.staff_session_logs
-  add constraint staff_session_logs_staff_auth_match
+alter table public.trx_staff_session_logs drop constraint if exists trx_staff_session_logs_staff_auth_match;
+alter table public.trx_staff_session_logs
+  add constraint trx_staff_session_logs_staff_auth_match
   foreign key (staff_id, auth_user_id)
-  references public.staff_members (id, auth_user_id)
+  references public.mst_staff_members (id, auth_user_id)
   on delete cascade;
 
-create table if not exists public.notification_feed (
+create table if not exists public.mst_notification_feed (
   id text primary key,
   sort_order integer not null default 0,
   title text not null,
@@ -148,14 +167,14 @@ create table if not exists public.notification_feed (
   tone text not null check (tone in ('neutral', 'success', 'warning'))
 );
 
-create table if not exists public.cashier_snapshot (
+create table if not exists public.mst_cashier_snapshot (
   id text primary key,
   active_cashiers integer not null default 0,
   active_time text not null,
   highlighted_table text not null
 );
 
-create table if not exists public.app_settings (
+create table if not exists public.mst_app_settings (
   id text primary key,
   store_name text not null,
   branch_name text not null,
@@ -172,10 +191,24 @@ create table if not exists public.app_settings (
   menu_categories jsonb not null default '["Espresso","Manual Brew","Non Coffee","Makanan"]'::jsonb
 );
 
-alter table public.app_settings add column if not exists payment_methods jsonb not null default '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb;
-alter table public.app_settings add column if not exists menu_categories jsonb not null default '["Espresso","Manual Brew","Non Coffee","Makanan"]'::jsonb;
+alter table public.mst_app_settings add column if not exists payment_methods jsonb not null default '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb;
+alter table public.mst_app_settings add column if not exists menu_categories jsonb not null default '["Espresso","Manual Brew","Non Coffee","Makanan"]'::jsonb;
 
-create table if not exists public.notification_settings (
+create table if not exists public.mst_staff_roles (
+  id text primary key,
+  name text not null unique,
+  sort_order integer not null default 0,
+  is_active boolean not null default true
+);
+
+create table if not exists public.mst_staff_role_permissions (
+  role_id text not null references public.mst_staff_roles (id) on delete cascade,
+  menu_key text not null,
+  access_level text not null check (access_level in ('hidden', 'read', 'create', 'manage')),
+  primary key (role_id, menu_key)
+);
+
+create table if not exists public.mst_notification_settings (
   id text primary key,
   telegram_enabled boolean not null default false,
   bot_token text not null,
@@ -186,7 +219,7 @@ create table if not exists public.notification_settings (
   refund_alert boolean not null default false
 );
 
-create table if not exists public.sales_orders (
+create table if not exists public.trx_sales_orders (
   id uuid primary key default gen_random_uuid(),
   order_number text not null unique,
   payment_method text not null,
@@ -199,11 +232,11 @@ create table if not exists public.sales_orders (
   created_at timestamptz not null default now()
 );
 
-alter table public.sales_orders add column if not exists cashier_name text;
+alter table public.trx_sales_orders add column if not exists cashier_name text;
 
-create table if not exists public.sales_order_items (
+create table if not exists public.trx_sales_order_items (
   id uuid primary key default gen_random_uuid(),
-  order_id uuid not null references public.sales_orders (id) on delete cascade,
+  order_id uuid not null references public.trx_sales_orders (id) on delete cascade,
   product_id text not null,
   product_name text not null,
   unit_price integer not null default 0,
@@ -211,68 +244,78 @@ create table if not exists public.sales_order_items (
   line_total integer not null default 0
 );
 
-alter table public.dashboard_stats enable row level security;
-alter table public.revenue_points enable row level security;
-alter table public.popular_items enable row level security;
-alter table public.products enable row level security;
-alter table public.staff_members enable row level security;
-alter table public.staff_credentials enable row level security;
-alter table public.app_sessions enable row level security;
-alter table public.notification_feed enable row level security;
-alter table public.cashier_snapshot enable row level security;
-alter table public.app_settings enable row level security;
-alter table public.notification_settings enable row level security;
-alter table public.sales_orders enable row level security;
-alter table public.sales_order_items enable row level security;
-alter table public.staff_session_logs enable row level security;
+alter table public.mst_dashboard_stats enable row level security;
+alter table public.mst_revenue_points enable row level security;
+alter table public.mst_popular_items enable row level security;
+alter table public.mst_products enable row level security;
+alter table public.mst_staff_members enable row level security;
+alter table public.mst_staff_credentials enable row level security;
+alter table public.trx_app_sessions enable row level security;
+alter table public.mst_notification_feed enable row level security;
+alter table public.mst_cashier_snapshot enable row level security;
+alter table public.mst_app_settings enable row level security;
+alter table public.mst_notification_settings enable row level security;
+alter table public.mst_staff_roles enable row level security;
+alter table public.mst_staff_role_permissions enable row level security;
+alter table public.trx_sales_orders enable row level security;
+alter table public.trx_sales_order_items enable row level security;
+alter table public.trx_staff_session_logs enable row level security;
 
-drop policy if exists authenticated_read_dashboard_stats on public.dashboard_stats;
-create policy authenticated_read_dashboard_stats on public.dashboard_stats for select to authenticated using (true);
-drop policy if exists authenticated_read_revenue_points on public.revenue_points;
-create policy authenticated_read_revenue_points on public.revenue_points for select to authenticated using (true);
-drop policy if exists authenticated_read_popular_items on public.popular_items;
-create policy authenticated_read_popular_items on public.popular_items for select to authenticated using (true);
-drop policy if exists authenticated_read_products on public.products;
-create policy authenticated_read_products on public.products for select to authenticated using (true);
-drop policy if exists authenticated_read_staff_members on public.staff_members;
-create policy authenticated_read_staff_members on public.staff_members for select to authenticated using (true);
-drop policy if exists authenticated_update_own_staff_members on public.staff_members;
-create policy authenticated_update_own_staff_members on public.staff_members for update to authenticated using (auth.uid() = auth_user_id) with check (auth.uid() = auth_user_id);
-drop policy if exists authenticated_read_notification_feed on public.notification_feed;
-create policy authenticated_read_notification_feed on public.notification_feed for select to authenticated using (true);
-drop policy if exists authenticated_read_cashier_snapshot on public.cashier_snapshot;
-create policy authenticated_read_cashier_snapshot on public.cashier_snapshot for select to authenticated using (true);
-drop policy if exists authenticated_read_app_settings on public.app_settings;
-create policy authenticated_read_app_settings on public.app_settings for select to authenticated using (true);
-drop policy if exists authenticated_upsert_app_settings on public.app_settings;
-create policy authenticated_upsert_app_settings on public.app_settings for all to authenticated using (true) with check (true);
-drop policy if exists authenticated_read_notification_settings on public.notification_settings;
-create policy authenticated_read_notification_settings on public.notification_settings for select to authenticated using (true);
-drop policy if exists authenticated_upsert_notification_settings on public.notification_settings;
-create policy authenticated_upsert_notification_settings on public.notification_settings for all to authenticated using (true) with check (true);
-drop policy if exists authenticated_insert_sales_orders on public.sales_orders;
-create policy authenticated_insert_sales_orders on public.sales_orders for insert to authenticated with check (auth.uid() = user_id);
-drop policy if exists authenticated_read_sales_orders on public.sales_orders;
-create policy authenticated_read_sales_orders on public.sales_orders for select to authenticated using (auth.uid() = user_id);
-drop policy if exists authenticated_insert_sales_order_items on public.sales_order_items;
-create policy authenticated_insert_sales_order_items on public.sales_order_items for insert to authenticated with check (true);
-drop policy if exists authenticated_read_sales_order_items on public.sales_order_items;
-create policy authenticated_read_sales_order_items on public.sales_order_items for select to authenticated using (
+drop policy if exists authenticated_read_mst_dashboard_stats on public.mst_dashboard_stats;
+create policy authenticated_read_mst_dashboard_stats on public.mst_dashboard_stats for select to authenticated using (true);
+drop policy if exists authenticated_read_mst_revenue_points on public.mst_revenue_points;
+create policy authenticated_read_mst_revenue_points on public.mst_revenue_points for select to authenticated using (true);
+drop policy if exists authenticated_read_mst_popular_items on public.mst_popular_items;
+create policy authenticated_read_mst_popular_items on public.mst_popular_items for select to authenticated using (true);
+drop policy if exists authenticated_read_mst_products on public.mst_products;
+create policy authenticated_read_mst_products on public.mst_products for select to authenticated using (true);
+drop policy if exists authenticated_read_mst_staff_members on public.mst_staff_members;
+create policy authenticated_read_mst_staff_members on public.mst_staff_members for select to authenticated using (true);
+drop policy if exists authenticated_update_own_mst_staff_members on public.mst_staff_members;
+create policy authenticated_update_own_mst_staff_members on public.mst_staff_members for update to authenticated using (auth.uid() = auth_user_id) with check (auth.uid() = auth_user_id);
+drop policy if exists authenticated_read_mst_notification_feed on public.mst_notification_feed;
+create policy authenticated_read_mst_notification_feed on public.mst_notification_feed for select to authenticated using (true);
+drop policy if exists authenticated_read_mst_cashier_snapshot on public.mst_cashier_snapshot;
+create policy authenticated_read_mst_cashier_snapshot on public.mst_cashier_snapshot for select to authenticated using (true);
+drop policy if exists authenticated_read_mst_app_settings on public.mst_app_settings;
+create policy authenticated_read_mst_app_settings on public.mst_app_settings for select to authenticated using (true);
+drop policy if exists authenticated_upsert_mst_app_settings on public.mst_app_settings;
+create policy authenticated_upsert_mst_app_settings on public.mst_app_settings for all to authenticated using (true) with check (true);
+drop policy if exists authenticated_read_mst_notification_settings on public.mst_notification_settings;
+create policy authenticated_read_mst_notification_settings on public.mst_notification_settings for select to authenticated using (true);
+drop policy if exists authenticated_upsert_mst_notification_settings on public.mst_notification_settings;
+create policy authenticated_upsert_mst_notification_settings on public.mst_notification_settings for all to authenticated using (true) with check (true);
+drop policy if exists authenticated_read_mst_staff_roles on public.mst_staff_roles;
+create policy authenticated_read_mst_staff_roles on public.mst_staff_roles for select to authenticated using (true);
+drop policy if exists authenticated_upsert_mst_staff_roles on public.mst_staff_roles;
+create policy authenticated_upsert_mst_staff_roles on public.mst_staff_roles for all to authenticated using (true) with check (true);
+drop policy if exists authenticated_read_mst_staff_role_permissions on public.mst_staff_role_permissions;
+create policy authenticated_read_mst_staff_role_permissions on public.mst_staff_role_permissions for select to authenticated using (true);
+drop policy if exists authenticated_upsert_mst_staff_role_permissions on public.mst_staff_role_permissions;
+create policy authenticated_upsert_mst_staff_role_permissions on public.mst_staff_role_permissions for all to authenticated using (true) with check (true);
+drop policy if exists authenticated_insert_trx_sales_orders on public.trx_sales_orders;
+create policy authenticated_insert_trx_sales_orders on public.trx_sales_orders for insert to authenticated with check (auth.uid() = user_id);
+drop policy if exists authenticated_read_trx_sales_orders on public.trx_sales_orders;
+create policy authenticated_read_trx_sales_orders on public.trx_sales_orders for select to authenticated using (auth.uid() = user_id);
+drop policy if exists authenticated_insert_trx_sales_order_items on public.trx_sales_order_items;
+create policy authenticated_insert_trx_sales_order_items on public.trx_sales_order_items for insert to authenticated with check (true);
+drop policy if exists authenticated_read_trx_sales_order_items on public.trx_sales_order_items;
+create policy authenticated_read_trx_sales_order_items on public.trx_sales_order_items for select to authenticated using (
   exists (
     select 1
-    from public.sales_orders
-    where sales_orders.id = sales_order_items.order_id
-      and sales_orders.user_id = auth.uid()
+    from public.trx_sales_orders
+    where trx_sales_orders.id = trx_sales_order_items.order_id
+      and trx_sales_orders.user_id = auth.uid()
   )
 );
-drop policy if exists authenticated_read_staff_session_logs on public.staff_session_logs;
-create policy authenticated_read_staff_session_logs on public.staff_session_logs for select to authenticated using (auth.uid() = auth_user_id);
-drop policy if exists authenticated_insert_staff_session_logs on public.staff_session_logs;
-create policy authenticated_insert_staff_session_logs on public.staff_session_logs for insert to authenticated with check (auth.uid() = auth_user_id);
-drop policy if exists authenticated_update_own_staff_session_logs on public.staff_session_logs;
-create policy authenticated_update_own_staff_session_logs on public.staff_session_logs for update to authenticated using (auth.uid() = auth_user_id) with check (auth.uid() = auth_user_id);
+drop policy if exists authenticated_read_trx_staff_session_logs on public.trx_staff_session_logs;
+create policy authenticated_read_trx_staff_session_logs on public.trx_staff_session_logs for select to authenticated using (auth.uid() = auth_user_id);
+drop policy if exists authenticated_insert_trx_staff_session_logs on public.trx_staff_session_logs;
+create policy authenticated_insert_trx_staff_session_logs on public.trx_staff_session_logs for insert to authenticated with check (auth.uid() = auth_user_id);
+drop policy if exists authenticated_update_own_trx_staff_session_logs on public.trx_staff_session_logs;
+create policy authenticated_update_own_trx_staff_session_logs on public.trx_staff_session_logs for update to authenticated using (auth.uid() = auth_user_id) with check (auth.uid() = auth_user_id);
 
-insert into public.dashboard_stats (sort_order, title, value, delta, description, icon)
+insert into public.mst_dashboard_stats (sort_order, title, value, delta, description, icon)
 values
   (1, 'Total Pendapatan', 'Rp 18.420.000', '+12,4%', 'naik dibanding minggu lalu', 'wallet'),
   (2, 'Pesanan Selesai', '312', '+28 order', 'dengan SLA tersaji 6 menit', 'badge-check'),
@@ -285,7 +328,7 @@ on conflict (sort_order) do update set
   description = excluded.description,
   icon = excluded.icon;
 
-insert into public.revenue_points (sort_order, day, revenue)
+insert into public.mst_revenue_points (sort_order, day, revenue)
 values
   (1, 'Sen', 2200000),
   (2, 'Sel', 2850000),
@@ -298,7 +341,7 @@ on conflict (sort_order) do update set
   day = excluded.day,
   revenue = excluded.revenue;
 
-insert into public.popular_items (sort_order, name, orders, share)
+insert into public.mst_popular_items (sort_order, name, orders, share)
 values
   (1, 'Caramel Macchiato', 124, 34),
   (2, 'Beef Burger & Chips', 96, 26),
@@ -309,7 +352,7 @@ on conflict (sort_order) do update set
   orders = excluded.orders,
   share = excluded.share;
 
-insert into public.products (id, name, category, description, price, stock, is_active, image_path)
+insert into public.mst_products (id, name, category, description, price, stock, is_active, image_path)
 values
   ('caramel-macchiato', 'Caramel Macchiato', 'Espresso', 'Espresso, susu steamed, dan caramel drizzle.', 34000, 42, true, null),
   ('flat-white', 'Flat White', 'Espresso', 'Body creamy dengan roast cokelat kacang.', 30000, 35, true, null),
@@ -321,20 +364,77 @@ values
   ('spanish-latte', 'Spanish Latte', 'Espresso', 'Espresso blend, susu, dan condensed milk.', 34000, 24, true, null)
 on conflict do nothing;
 
-insert into public.staff_members (id, name, role, access, shift, phone, status)
+insert into public.mst_staff_members (id, name, role, access, status)
 values
-  ('stf-001', 'Aa Nden', 'Owner', 'Penuh', '09.00 - 18.00', '0812-1122-3344', 'Online'),
-  ('stf-002', 'Nabila Putri', 'Supervisor', 'Operasional', '08.00 - 17.00', '0813-8877-1100', 'Online'),
-  ('stf-003', 'Raka Aditama', 'Kasir', 'Kasir', '07.00 - 15.00', '0819-4433-2211', 'Istirahat'),
-  ('stf-004', 'Salsa Maharani', 'Barista', 'Operasional', '10.00 - 19.00', '0821-6655-7788', 'Online'),
-  ('stf-005', 'Bima Prakoso', 'Kasir', 'Kasir', '13.00 - 21.00', '0822-9090-1212', 'Off')
+  ('stf-001', 'Aa Nden', 'Owner', 'Penuh', 'Online'),
+  ('stf-002', 'Nabila Putri', 'Supervisor', 'Operasional', 'Online'),
+  ('stf-003', 'Raka Aditama', 'Kasir', 'Kasir', 'Istirahat'),
+  ('stf-004', 'Salsa Maharani', 'Barista', 'Operasional', 'Online'),
+  ('stf-005', 'Bima Prakoso', 'Kasir', 'Kasir', 'Off')
 on conflict do nothing;
 
-update public.staff_members
+insert into public.mst_staff_roles (id, name, sort_order, is_active)
+values
+  ('owner', 'Owner', 1, true),
+  ('kasir', 'Kasir', 2, true),
+  ('supervisor', 'Supervisor', 3, true),
+  ('barista', 'Barista', 4, true)
+on conflict (id) do update set
+  name = excluded.name,
+  sort_order = excluded.sort_order,
+  is_active = excluded.is_active;
+
+insert into public.mst_staff_role_permissions (role_id, menu_key, access_level)
+values
+  ('owner', 'dashboard', 'manage'),
+  ('owner', 'kasir', 'manage'),
+  ('owner', 'invoice-kasir', 'manage'),
+  ('owner', 'produk', 'manage'),
+  ('owner', 'staf', 'manage'),
+  ('owner', 'notifikasi', 'manage'),
+  ('owner', 'pengaturan', 'manage'),
+  ('supervisor', 'dashboard', 'read'),
+  ('supervisor', 'kasir', 'create'),
+  ('supervisor', 'invoice-kasir', 'read'),
+  ('supervisor', 'produk', 'create'),
+  ('supervisor', 'staf', 'hidden'),
+  ('supervisor', 'notifikasi', 'read'),
+  ('supervisor', 'pengaturan', 'hidden'),
+  ('kasir', 'dashboard', 'hidden'),
+  ('kasir', 'kasir', 'create'),
+  ('kasir', 'invoice-kasir', 'hidden'),
+  ('kasir', 'produk', 'hidden'),
+  ('kasir', 'staf', 'hidden'),
+  ('kasir', 'notifikasi', 'hidden'),
+  ('kasir', 'pengaturan', 'hidden'),
+  ('barista', 'dashboard', 'hidden'),
+  ('barista', 'kasir', 'create'),
+  ('barista', 'invoice-kasir', 'hidden'),
+  ('barista', 'produk', 'hidden'),
+  ('barista', 'staf', 'hidden'),
+  ('barista', 'notifikasi', 'hidden'),
+  ('barista', 'pengaturan', 'hidden')
+on conflict (role_id, menu_key) do update set
+  access_level = excluded.access_level;
+
+update public.mst_staff_members sm
+set role_id = sr.id
+from public.mst_staff_roles sr
+where lower(sm.role) = lower(sr.name)
+  and (sm.role_id is null or sm.role_id <> sr.id);
+
+alter table public.mst_staff_members drop constraint if exists mst_staff_members_role_id_fkey;
+alter table public.mst_staff_members
+  add constraint mst_staff_members_role_id_fkey
+  foreign key (role_id)
+  references public.mst_staff_roles (id)
+  on delete restrict;
+
+update public.mst_staff_members
 set email = 'owner@coffeebean.local', access = 'Penuh'
 where id = 'stf-001';
 
-insert into public.staff_credentials (staff_id, password_hash, is_owner, is_active)
+insert into public.mst_staff_credentials (staff_id, password_hash, is_owner, is_active)
 values ('stf-001', crypt('coffeebean', gen_salt('bf', 12)), true, true)
 on conflict (staff_id)
 do update set
@@ -344,28 +444,28 @@ do update set
   updated_at = now(),
   password_updated_at = now();
 
-insert into public.notification_feed (id, sort_order, title, message, time, channel, tone)
+insert into public.mst_notification_feed (id, sort_order, title, message, time, channel, tone)
 values
   ('notif-001', 1, 'Stok Matcha Cloud menipis', 'Sisa stok 10 porsi. Pertimbangkan reorder sebelum peak sore.', '5 menit lalu', 'Telegram', 'warning'),
   ('notif-002', 2, 'Kasir shift pagi ditutup', 'Ringkasan transaksi Rp 6.480.000 berhasil dikirim ke grup owner.', '35 menit lalu', 'Telegram', 'success'),
   ('notif-003', 3, 'Printer struk status normal', 'Perangkat front counter kembali terhubung setelah restart otomatis.', '1 jam lalu', 'Sistem', 'neutral')
 on conflict do nothing;
 
-insert into public.cashier_snapshot (id, active_cashiers, active_time, highlighted_table)
+insert into public.mst_cashier_snapshot (id, active_cashiers, active_time, highlighted_table)
 values ('default', 3, '23.42', 'Counter A')
 on conflict (id) do nothing;
 
-insert into public.app_settings (
+insert into public.mst_app_settings (
   id, store_name, branch_name, tax_rate, service_fee, store_phone, receipt_footer, bank_name, bank_account_name, bank_account_number, opening_cash, auto_print_receipt, payment_methods, menu_categories
 )
 values (
   'default', 'Coffee Bean Signature', 'Cabang Setiabudi', 11, 5, '021-5550-7788', 'Terima kasih sudah menikmati racikan kami. Sampai jumpa lagi!', 'Bank Central Asia', 'PT Coffee Bean Nusantara', '112233445566', 750000, true, '[{"id":"cash","label":"Tunai","enabled":true},{"id":"debit","label":"Debit","enabled":true},{"id":"qris","label":"QRIS","enabled":true}]'::jsonb, '["Espresso","Manual Brew","Non Coffee","Makanan"]'::jsonb
 )
 on conflict (id) do update set
-  payment_methods = coalesce(public.app_settings.payment_methods, excluded.payment_methods),
-  menu_categories = coalesce(public.app_settings.menu_categories, excluded.menu_categories);
+  payment_methods = coalesce(public.mst_app_settings.payment_methods, excluded.payment_methods),
+  menu_categories = coalesce(public.mst_app_settings.menu_categories, excluded.menu_categories);
 
-insert into public.notification_settings (
+insert into public.mst_notification_settings (
   id, telegram_enabled, bot_token, chat_id, digest_frequency, low_stock_alert, cashier_summary, refund_alert
 )
 values (
