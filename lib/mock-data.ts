@@ -54,10 +54,8 @@ export type CashierInvoice = {
 export type StaffMember = {
   id: string;
   name: string;
-  role: "Owner" | "Supervisor" | "Kasir" | "Barista";
+  role: string;
   access: "Penuh" | "Operasional" | "Kasir";
-  shift: string;
-  phone: string;
   status: "Online" | "Istirahat" | "Off";
 };
 
@@ -255,8 +253,6 @@ export const staffMembers: StaffMember[] = [
     name: "Aa Nden",
     role: "Owner",
     access: "Penuh",
-    shift: "09.00 - 18.00",
-    phone: "0812-1122-3344",
     status: "Online",
   },
   {
@@ -264,8 +260,6 @@ export const staffMembers: StaffMember[] = [
     name: "Nabila Putri",
     role: "Supervisor",
     access: "Operasional",
-    shift: "08.00 - 17.00",
-    phone: "0813-8877-1100",
     status: "Online",
   },
   {
@@ -273,8 +267,6 @@ export const staffMembers: StaffMember[] = [
     name: "Raka Aditama",
     role: "Kasir",
     access: "Kasir",
-    shift: "07.00 - 15.00",
-    phone: "0819-4433-2211",
     status: "Istirahat",
   },
   {
@@ -282,8 +274,6 @@ export const staffMembers: StaffMember[] = [
     name: "Salsa Maharani",
     role: "Barista",
     access: "Operasional",
-    shift: "10.00 - 19.00",
-    phone: "0821-6655-7788",
     status: "Online",
   },
   {
@@ -291,8 +281,6 @@ export const staffMembers: StaffMember[] = [
     name: "Bima Prakoso",
     role: "Kasir",
     access: "Kasir",
-    shift: "13.00 - 21.00",
-    phone: "0822-9090-1212",
     status: "Off",
   },
 ];
