@@ -1,3 +1,5 @@
+import type { MenuAccessLevel, StaffMenuKey } from "@/lib/roles";
+
 export const APP_SESSION_COOKIE = "coffee-internal-session";
 export const BOOTSTRAP_OWNER_EMAIL = "owner@coffeebean.local";
 
@@ -7,6 +9,8 @@ export type AppShellUser = {
   role: string;
   subtitle: string;
   modeLabel: "Internal";
+  isOwner?: boolean;
+  menuPermissions?: Partial<Record<StaffMenuKey, MenuAccessLevel>>;
 };
 
 export const DEFAULT_APP_USER: AppShellUser = {
@@ -15,4 +19,6 @@ export const DEFAULT_APP_USER: AppShellUser = {
   role: "Owner",
   subtitle: BOOTSTRAP_OWNER_EMAIL,
   modeLabel: "Internal",
+  isOwner: true,
+  menuPermissions: {},
 };
