@@ -1,4 +1,3 @@
-import { LoginSuccessFeedback } from "@/components/auth/login-success-feedback";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { CurrentTimeDisplay } from "@/components/dashboard/current-time-display";
 import { PageHeader } from "@/components/ui/page-header";
@@ -16,7 +15,6 @@ export default async function DashboardPage() {
 
   return (
     <>
-      <LoginSuccessFeedback />
       <div className="space-y-2 md:space-y-2.5 xl:space-y-2.5">
         <PageHeader
           compact

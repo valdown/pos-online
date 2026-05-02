@@ -1,5 +1,6 @@
 import type { AppShellUser } from "@/lib/auth";
 import { APP_SESSION_COOKIE } from "@/lib/auth";
+import { buildDefaultRolePermissions, normalizeRolePermissions, type MenuAccessLevel, type StaffMenuKey } from "@/lib/roles";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
 export const APP_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
@@ -7,9 +8,20 @@ export const APP_SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 7;
 type StaffProfileRow = {
   name: string;
   role: string;
+  role_id: string | null;
   access: string;
-  phone: string;
   email: string | null;
+  staff_credentials: StaffCredentialProfileRow | StaffCredentialProfileRow[] | null;
+};
+
+type StaffCredentialProfileRow = {
+  is_owner: boolean;
+  is_active: boolean;
+};
+
+type StaffRolePermissionRow = {
+  menu_key: StaffMenuKey;
+  access_level: MenuAccessLevel;
 };
 
 type AppSessionRow = {
@@ -23,11 +35,14 @@ type AppSessionRow = {
 export type InternalSessionUser = AppShellUser & {
   staffId: string;
   access: string;
-  phone: string;
   email: string | null;
+  roleId: string | null;
   sessionId: string;
   lastSeenAt: string;
   expiresAt: string;
+  isOwner: boolean;
+  isActive: boolean;
+  menuPermissions: Partial<Record<StaffMenuKey, MenuAccessLevel>>;
 };
 
 function initialsFromName(name: string) {
@@ -47,6 +62,14 @@ function normalizeStaffProfile(profile: StaffProfileRow | StaffProfileRow[] | nu
   }
 
   return Array.isArray(profile) ? profile[0] ?? null : profile;
+}
+
+function normalizeStaffCredentials(credentials: StaffCredentialProfileRow | StaffCredentialProfileRow[] | null) {
+  if (!credentials) {
+    return null;
+  }
+
+  return Array.isArray(credentials) ? credentials[0] ?? null : credentials;
 }
 
 export async function hashOpaqueToken(token: string) {
@@ -78,7 +101,15 @@ export function parseSessionCookieValue(value: string | null | undefined) {
   return { sessionId, token };
 }
 
-function toInternalUser(row: AppSessionRow, profile: StaffProfileRow): InternalSessionUser {
+function toInternalUser(row: AppSessionRow, profile: StaffProfileRow, rolePermissions: StaffRolePermissionRow[]): InternalSessionUser {
+  const credentials = normalizeStaffCredentials(profile.staff_credentials ?? null);
+  const isOwner = credentials?.is_owner ?? profile.role.toLowerCase() === "owner";
+  const isActive = credentials?.is_active ?? true;
+  const defaultPermissions = buildDefaultRolePermissions(profile.role);
+  const menuPermissions = isOwner
+    ? defaultPermissions
+    : normalizeRolePermissions(Object.fromEntries(rolePermissions.map((permission) => [permission.menu_key, permission.access_level])), profile.role);
+
   return {
     staffId: row.staff_id,
     sessionId: row.id,
@@ -86,12 +117,15 @@ function toInternalUser(row: AppSessionRow, profile: StaffProfileRow): InternalS
     expiresAt: row.expires_at,
     name: profile.name,
     role: profile.role,
-    subtitle: profile.email ?? profile.phone,
+    subtitle: profile.email ?? profile.role,
     modeLabel: "Internal",
     initials: initialsFromName(profile.name),
     access: profile.access,
-    phone: profile.phone,
     email: profile.email,
+    roleId: profile.role_id,
+    isOwner,
+    isActive,
+    menuPermissions,
   };
 }
 
@@ -105,8 +139,8 @@ export async function resolveInternalSessionUser(sessionCookieValue: string | nu
 
   const tokenHash = await hashOpaqueToken(parsed.token);
   const { data, error } = await admin
-    .from("app_sessions")
-    .select("id, staff_id, last_seen_at, expires_at, staff_members(name, role, access, phone, email)")
+    .from("trx_app_sessions")
+    .select("id, staff_id, last_seen_at, expires_at, staff_members:mst_staff_members(name, role, role_id, access, email, staff_credentials:mst_staff_credentials(is_owner, is_active))")
     .eq("id", parsed.sessionId)
     .eq("token_hash", tokenHash)
     .is("revoked_at", null)
@@ -119,7 +153,16 @@ export async function resolveInternalSessionUser(sessionCookieValue: string | nu
     return null;
   }
 
-  return toInternalUser(data, profile);
+  const rolePermissions = profile.role_id
+    ? ((
+        await admin
+          .from("mst_staff_role_permissions")
+          .select("menu_key, access_level")
+          .eq("role_id", profile.role_id)
+      ).data ?? [])
+    : [];
+
+  return toInternalUser(data, profile, rolePermissions as StaffRolePermissionRow[]);
 }
 
 export async function touchInternalSession(session: InternalSessionUser) {
@@ -139,8 +182,8 @@ export async function touchInternalSession(session: InternalSessionUser) {
   const nowIso = new Date().toISOString();
 
   await Promise.all([
-    admin.from("app_sessions").update({ last_seen_at: nowIso }).eq("id", session.sessionId),
-    admin.from("staff_members").update({ last_seen_at: nowIso, status: "Online" }).eq("id", session.staffId),
+    admin.from("trx_app_sessions").update({ last_seen_at: nowIso }).eq("id", session.sessionId),
+    admin.from("mst_staff_members").update({ last_seen_at: nowIso, status: "Online" }).eq("id", session.staffId),
   ]);
 }
 
@@ -156,7 +199,7 @@ export async function revokeInternalSession(sessionCookieValue: string | null | 
   const nowIso = new Date().toISOString();
 
   const { data } = await admin
-    .from("app_sessions")
+    .from("trx_app_sessions")
     .select("staff_id")
     .eq("id", parsed.sessionId)
     .eq("token_hash", tokenHash)
@@ -164,14 +207,14 @@ export async function revokeInternalSession(sessionCookieValue: string | null | 
     .maybeSingle<{ staff_id: string }>();
 
   await admin
-    .from("app_sessions")
+    .from("trx_app_sessions")
     .update({ revoked_at: nowIso, last_seen_at: nowIso })
     .eq("id", parsed.sessionId)
     .eq("token_hash", tokenHash)
     .is("revoked_at", null);
 
   if (data?.staff_id) {
-    await admin.from("staff_members").update({ last_logout_at: nowIso, status: "Off" }).eq("id", data.staff_id);
+    await admin.from("mst_staff_members").update({ last_logout_at: nowIso, status: "Off" }).eq("id", data.staff_id);
   }
 }
 
@@ -181,7 +224,7 @@ export function getSessionCookieConfig() {
     options: {
       httpOnly: true,
       sameSite: "lax" as const,
-      secure: true,
+      secure: process.env.NODE_ENV === "production",
       path: "/",
       maxAge: APP_SESSION_MAX_AGE_SECONDS,
     },

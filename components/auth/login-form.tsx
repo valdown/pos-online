@@ -39,14 +39,16 @@ export function LoginForm() {
     try {
       const response = await fetch("/api/auth/login", {
         method: "POST",
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(values),
       });
 
+      const payload = (await response.json().catch(() => null)) as { error?: string; redirectTo?: string } | null;
+
       if (!response.ok) {
-        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
         await stopLoading();
         setAuthError(payload?.error ?? "Login internal gagal. Periksa email dan kata sandi owner.");
         return;
@@ -54,7 +56,7 @@ export function LoginForm() {
 
       setAuthError(null);
       markLoginSuccessRedirect();
-      router.push("/dashboard");
+      window.location.assign(payload?.redirectTo ?? "/dashboard");
     } catch (error) {
       await stopLoading();
       setAuthError(error instanceof Error ? error.message : "Login internal gagal. Periksa email dan kata sandi owner.");

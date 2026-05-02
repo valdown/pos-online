@@ -2,7 +2,6 @@ import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
 import { APP_SESSION_COOKIE } from "@/lib/auth";
-import { resolveInternalSessionUser, touchInternalSession } from "@/lib/internal-auth";
 
 export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -17,18 +16,12 @@ export async function proxy(request: NextRequest) {
   }
 
   const sessionCookie = request.cookies.get(APP_SESSION_COOKIE)?.value ?? null;
-  const session = await resolveInternalSessionUser(sessionCookie);
 
   if (pathname === "/login") {
-    if (session) {
-      void touchInternalSession(session);
-      return NextResponse.redirect(new URL("/dashboard", request.url));
-    }
-
     return NextResponse.next();
   }
 
-  if (!session) {
+  if (!sessionCookie) {
     const response = NextResponse.redirect(new URL("/login", request.url));
 
     if (sessionCookie) {
@@ -37,8 +30,6 @@ export async function proxy(request: NextRequest) {
 
     return response;
   }
-
-  void touchInternalSession(session);
 
   return NextResponse.next();
 }

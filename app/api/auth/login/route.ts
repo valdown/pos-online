@@ -4,6 +4,7 @@ import { compare } from "bcryptjs";
 import { NextResponse } from "next/server";
 
 import { BOOTSTRAP_OWNER_EMAIL } from "@/lib/auth";
+import { getFirstAccessibleMenuHref } from "@/lib/internal-permissions";
 import {
   APP_SESSION_MAX_AGE_SECONDS,
   createOpaqueToken,
@@ -12,6 +13,7 @@ import {
   serializeSessionCookieValue,
 } from "@/lib/internal-auth";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
+import { buildDefaultRolePermissions, type MenuAccessLevel, type StaffMenuKey } from "@/lib/roles";
 
 type LoginPayload = {
   email?: string;
@@ -22,8 +24,8 @@ type StaffAccountRow = {
   id: string;
   name: string;
   role: string;
+  role_id: string | null;
   access: string;
-  phone: string;
   email: string | null;
 };
 
@@ -49,11 +51,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Email dan kata sandi wajib diisi." }, { status: 400 });
   }
 
-  const { data, error } = await admin
-    .from("staff_members")
-    .select("id, name, role, access, phone, email")
-    .eq("email", email)
-    .maybeSingle<StaffAccountRow>();
+  const { data, error } = await admin.from("mst_staff_members").select("id, name, role, role_id, access, email").eq("email", email).maybeSingle<StaffAccountRow>();
 
   if (error) {
     return NextResponse.json(
@@ -76,7 +74,7 @@ export async function POST(request: Request) {
   }
 
   const { data: credentials, error: credentialsError } = data
-    ? await admin.from("staff_credentials").select("password_hash, is_active, is_owner").eq("staff_id", data.id).maybeSingle<StaffCredentialRow>()
+    ? await admin.from("mst_staff_credentials").select("password_hash, is_active, is_owner").eq("staff_id", data.id).maybeSingle<StaffCredentialRow>()
     : { data: null, error: null };
 
   if (credentialsError) {
@@ -99,12 +97,10 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!credentials.is_owner || !credentials.is_active) {
+  if (!credentials.is_active) {
     return NextResponse.json(
       {
-        error: isBootstrapOwnerLogin
-          ? `Credential owner bootstrap ditemukan tetapi flag tidak sesuai. is_owner=${String(credentials.is_owner)}, is_active=${String(credentials.is_active)}.`
-          : "Email atau kata sandi tidak valid.",
+        error: "Akun Tidak Aktif, Hubungi Owner",
       },
       { status: 401 }
     );
@@ -129,7 +125,7 @@ export async function POST(request: Request) {
   const nowIso = new Date().toISOString();
   const expiresAt = new Date(Date.now() + APP_SESSION_MAX_AGE_SECONDS * 1000).toISOString();
 
-  const { error: sessionError } = await admin.from("app_sessions").insert({
+  const { error: sessionError } = await admin.from("trx_app_sessions").insert({
     id: sessionId,
     staff_id: data.id,
     token_hash: tokenHash,
@@ -141,9 +137,20 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Gagal membuat sesi login. Coba ulang beberapa detik lagi." }, { status: 500 });
   }
 
-  await admin.from("staff_members").update({ last_login_at: nowIso, last_seen_at: nowIso, status: "Online" }).eq("id", data.id);
+  await admin.from("mst_staff_members").update({ last_login_at: nowIso, last_seen_at: nowIso, status: "Online" }).eq("id", data.id);
 
-  const response = NextResponse.json({ ok: true });
+  const rolePermissions = data.role_id
+    ? ((
+        await admin
+          .from("mst_staff_role_permissions")
+          .select("menu_key, access_level")
+          .eq("role_id", data.role_id)
+      ).data ?? [])
+    : [];
+  const menuPermissions = credentials.is_owner
+    ? buildDefaultRolePermissions(data.role)
+    : Object.fromEntries(rolePermissions.map((permission) => [permission.menu_key, permission.access_level])) as Partial<Record<StaffMenuKey, MenuAccessLevel>>;
+  const response = NextResponse.json({ ok: true, redirectTo: getFirstAccessibleMenuHref({ isOwner: credentials.is_owner, menuPermissions }) });
   const sessionCookie = getSessionCookieConfig();
   response.cookies.set(sessionCookie.name, serializeSessionCookieValue(sessionId, rawToken), sessionCookie.options);
   return response;
