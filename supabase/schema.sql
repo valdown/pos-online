@@ -45,7 +45,7 @@ create unique index if not exists idx_mst_revenue_points_sort_order on public.ms
 create unique index if not exists idx_mst_popular_items_sort_order on public.mst_popular_items (sort_order);
 
 create table if not exists public.mst_products (
-  id text primary key,
+  id uuid primary key default gen_random_uuid(),
   name text not null,
   category text not null,
   description text not null,
@@ -354,14 +354,14 @@ on conflict (sort_order) do update set
 
 insert into public.mst_products (id, name, category, description, price, stock, is_active, image_path)
 values
-  ('caramel-macchiato', 'Caramel Macchiato', 'Espresso', 'Espresso, susu steamed, dan caramel drizzle.', 34000, 42, true, null),
-  ('flat-white', 'Flat White', 'Espresso', 'Body creamy dengan roast cokelat kacang.', 30000, 35, true, null),
-  ('v60-kintamani', 'V60 Kintamani', 'Manual Brew', 'Profil citrus floral dengan body ringan.', 36000, 16, true, null),
-  ('aren-latte', 'Aren Latte', 'Non Coffee', 'Latte susu aren dengan tekstur lembut.', 32000, 28, true, null),
-  ('matcha-cloud', 'Matcha Cloud', 'Non Coffee', 'Matcha creamy dengan foam vanilla tipis.', 33000, 10, true, null),
-  ('beef-burger-chips', 'Beef Burger & Chips', 'Makanan', 'Burger signature dengan kentang renyah.', 52000, 18, true, null),
-  ('croissant-almond', 'Croissant Almond', 'Makanan', 'Butter croissant dengan taburan almond panggang.', 28000, 9, true, null),
-  ('spanish-latte', 'Spanish Latte', 'Espresso', 'Espresso blend, susu, dan condensed milk.', 34000, 24, true, null)
+  ('11111111-1111-4111-8111-111111111111', 'Caramel Macchiato', 'Espresso', 'Espresso, susu steamed, dan caramel drizzle.', 34000, 42, true, null),
+  ('22222222-2222-4222-8222-222222222222', 'Flat White', 'Espresso', 'Body creamy dengan roast cokelat kacang.', 30000, 35, true, null),
+  ('33333333-3333-4333-8333-333333333333', 'V60 Kintamani', 'Manual Brew', 'Profil citrus floral dengan body ringan.', 36000, 16, true, null),
+  ('44444444-4444-4444-8444-444444444444', 'Aren Latte', 'Non Coffee', 'Latte susu aren dengan tekstur lembut.', 32000, 28, true, null),
+  ('55555555-5555-4555-8555-555555555555', 'Matcha Cloud', 'Non Coffee', 'Matcha creamy dengan foam vanilla tipis.', 33000, 10, true, null),
+  ('66666666-6666-4666-8666-666666666666', 'Beef Burger & Chips', 'Makanan', 'Burger signature dengan kentang renyah.', 52000, 18, true, null),
+  ('77777777-7777-4777-8777-777777777777', 'Croissant Almond', 'Makanan', 'Butter croissant dengan taburan almond panggang.', 28000, 9, true, null),
+  ('88888888-8888-4888-8888-888888888888', 'Spanish Latte', 'Espresso', 'Espresso blend, susu, dan condensed milk.', 34000, 24, true, null)
 on conflict do nothing;
 
 insert into public.mst_staff_members (id, name, role, access, status)

@@ -166,7 +166,7 @@ export const productCategories: ProductCategory[] = [
 
 export const products: Product[] = [
   {
-    id: "caramel-macchiato",
+    id: "11111111-1111-4111-8111-111111111111",
     name: "Caramel Macchiato",
     category: "Espresso",
     description: "Espresso, susu steamed, dan caramel drizzle.",
@@ -176,7 +176,7 @@ export const products: Product[] = [
     imagePath: null,
   },
   {
-    id: "flat-white",
+    id: "22222222-2222-4222-8222-222222222222",
     name: "Flat White",
     category: "Espresso",
     description: "Body creamy dengan roast cokelat kacang.",
@@ -186,7 +186,7 @@ export const products: Product[] = [
     imagePath: null,
   },
   {
-    id: "v60-kintamani",
+    id: "33333333-3333-4333-8333-333333333333",
     name: "V60 Kintamani",
     category: "Manual Brew",
     description: "Profil citrus floral dengan body ringan.",
@@ -196,7 +196,7 @@ export const products: Product[] = [
     imagePath: null,
   },
   {
-    id: "aren-latte",
+    id: "44444444-4444-4444-8444-444444444444",
     name: "Aren Latte",
     category: "Non Coffee",
     description: "Latte susu aren dengan tekstur lembut.",
@@ -206,7 +206,7 @@ export const products: Product[] = [
     imagePath: null,
   },
   {
-    id: "matcha-cloud",
+    id: "55555555-5555-4555-8555-555555555555",
     name: "Matcha Cloud",
     category: "Non Coffee",
     description: "Matcha creamy dengan foam vanilla tipis.",
@@ -216,7 +216,7 @@ export const products: Product[] = [
     imagePath: null,
   },
   {
-    id: "beef-burger-chips",
+    id: "66666666-6666-4666-8666-666666666666",
     name: "Beef Burger & Chips",
     category: "Makanan",
     description: "Burger signature dengan kentang renyah.",
@@ -226,7 +226,7 @@ export const products: Product[] = [
     imagePath: null,
   },
   {
-    id: "croissant-almond",
+    id: "77777777-7777-4777-8777-777777777777",
     name: "Croissant Almond",
     category: "Makanan",
     description: "Butter croissant dengan taburan almond panggang.",
@@ -236,7 +236,7 @@ export const products: Product[] = [
     imagePath: null,
   },
   {
-    id: "spanish-latte",
+    id: "88888888-8888-4888-8888-888888888888",
     name: "Spanish Latte",
     category: "Espresso",
     description: "Espresso blend, susu, dan condensed milk.",
