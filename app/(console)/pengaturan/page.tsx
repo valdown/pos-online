@@ -6,6 +6,7 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MenuCategorySettingsForm } from "@/components/forms/menu-category-settings-form";
 import { PaymentMethodSettingsForm } from "@/components/forms/payment-method-settings-form";
+import { RoleSettingsForm } from "@/components/forms/role-settings-form";
 import { useSettings } from "@/components/providers/settings";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -30,6 +31,7 @@ export default function SettingsPage() {
           <TabsTrigger value="app-config">Konfigurasi Aplikasi</TabsTrigger>
           <TabsTrigger value="payment-methods">Konfigurasi Metode Pembayaran</TabsTrigger>
           <TabsTrigger value="menu-categories">Konfigurasi Kategori Menu</TabsTrigger>
+          <TabsTrigger value="role-config">Konfigurasi Role</TabsTrigger>
         </TabsList>
 
         <TabsContent value="app-config">
@@ -108,6 +110,10 @@ export default function SettingsPage() {
               </CardContent>
             </Card>
           </div>
+        </TabsContent>
+
+        <TabsContent value="role-config">
+          <RoleSettingsForm />
         </TabsContent>
       </Tabs>
     </>
