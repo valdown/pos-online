@@ -14,6 +14,20 @@ import { MENU_ACCESS_LEVEL_LABELS, MENU_ACCESS_LEVELS, STAFF_MENU_KEYS, STAFF_ME
 import type { StaffListItem } from "@/lib/supabase/staff";
 import type { StaffRoleOption } from "@/lib/supabase/roles";
 
+function formatStaffTime(value: string | null) {
+  if (!value) {
+    return "-";
+  }
+
+  return new Intl.DateTimeFormat("id-ID", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(new Date(value));
+}
+
 type StaffFormValues = {
   name: string;
   email: string;
@@ -211,6 +225,8 @@ export function StaffCrudClient({ initialStaff, initialRoles }: { initialStaff: 
                   <th className="pb-2 font-medium">Email</th>
                   <th className="pb-2 font-medium">Role</th>
                   <th className="pb-2 font-medium">Akses</th>
+                  <th className="pb-2 font-medium">Login Time</th>
+                  <th className="pb-2 font-medium">Logout Time</th>
                   <th className="pb-2 font-medium">Status Online</th>
                   <th className="pb-2 font-medium">Status Akun</th>
                   <th className="pb-2 font-medium text-right">Aksi</th>
@@ -225,6 +241,8 @@ export function StaffCrudClient({ initialStaff, initialRoles }: { initialStaff: 
                     <td className="px-4 py-4 text-sm text-[var(--muted)]">{member.email || "-"}</td>
                     <td className="px-4 py-4 text-sm font-medium text-[var(--ink)]">{member.role}</td>
                     <td className="px-4 py-4"><Badge variant="neutral">{member.access}</Badge></td>
+                    <td className="px-4 py-4 text-sm whitespace-nowrap text-[var(--muted)]">{formatStaffTime(member.loginTime)}</td>
+                    <td className="px-4 py-4 text-sm whitespace-nowrap text-[var(--muted)]">{formatStaffTime(member.logoutTime)}</td>
                     <td className="px-4 py-4">
                       <Badge variant={member.statusOnline === "Online" ? "success" : member.statusOnline === "Istirahat" ? "warning" : "neutral"}>
                         {member.statusOnline}

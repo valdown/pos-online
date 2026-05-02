@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { CreditCard, Minus, Plus, ReceiptText, RotateCcw, Search, Wallet, X } from "lucide-react";
 import { toast } from "sonner";
 
+import { useLoadingOverlay } from "@/components/providers/loading-overlay";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -89,6 +90,7 @@ export function PosClient({
   const [cashDialogOpen, setCashDialogOpen] = useState(false);
   const [cashPaidInput, setCashPaidInput] = useState("");
   const [isMounted, setIsMounted] = useState(false);
+  const { startLoading, stopLoading } = useLoadingOverlay();
 
   useEffect(() => {
     if (!enabledPaymentMethods.some((method) => method.id === paymentMethod)) {
@@ -202,43 +204,55 @@ export function PosClient({
   };
 
   const submitOrder = async () => {
-    const response = await fetch("/api/orders", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        paymentMethod,
-        subtotal,
-        tax,
-        total,
-        items: cart.map((item) => ({
-          productId: item.id,
-          productName: item.name,
-          unitPrice: item.price,
-          quantity: item.quantity,
-          lineTotal: item.price * item.quantity,
-        })),
-      }),
-    });
+    startLoading();
 
-    if (!response.ok) {
-      const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+    try {
+      const response = await fetch("/api/orders", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          paymentMethod,
+          subtotal,
+          tax,
+          total,
+          items: cart.map((item) => ({
+            productId: item.id,
+            productName: item.name,
+            unitPrice: item.price,
+            quantity: item.quantity,
+            lineTotal: item.price * item.quantity,
+          })),
+        }),
+      });
+
+      if (!response.ok) {
+        const payload = (await response.json().catch(() => null)) as { error?: string } | null;
+        await stopLoading();
+        toast.error("Checkout gagal diproses.", {
+          description: payload?.error ?? "Periksa konfigurasi Supabase dan schema tabel orders kamu.",
+        });
+        return false;
+      }
+
+      const payload = (await response.json()) as { orderNumber: string; createdAt: string };
+
+      setCart([]);
+      setCashDialogOpen(false);
+      setCashPaidInput("");
+      await stopLoading();
+      toast.success(`Pembayaran ${activePaymentMethodLabel} berhasil diproses.`, {
+        description: `Order ${payload.orderNumber} senilai ${formatCurrency(total)} tersimpan ke database dan keranjang direset.`,
+      });
+      return true;
+    } catch (error) {
+      await stopLoading();
       toast.error("Checkout gagal diproses.", {
-        description: payload?.error ?? "Periksa konfigurasi Supabase dan schema tabel orders kamu.",
+        description: error instanceof Error ? error.message : "Periksa konfigurasi Supabase dan schema tabel orders kamu.",
       });
       return false;
     }
-
-    const payload = (await response.json()) as { orderNumber: string; createdAt: string };
-
-    toast.success(`Pembayaran ${activePaymentMethodLabel} berhasil diproses.`, {
-      description: `Order ${payload.orderNumber} senilai ${formatCurrency(total)} tersimpan ke database dan keranjang direset.`,
-    });
-    setCart([]);
-    setCashDialogOpen(false);
-    setCashPaidInput("");
-    return true;
   };
 
   const handleCheckout = () => {
