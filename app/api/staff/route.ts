@@ -129,7 +129,7 @@ export async function POST(request: Request) {
 
     const { data: memberRow } = await supabase
       .from("mst_staff_members")
-      .select("id, name, email, role, role_id, access, status, created_at, created_by, updated_at, updated_by, staff_credentials:mst_staff_credentials(is_active, is_owner)")
+      .select("id, name, email, role, role_id, access, status, last_login_at, last_logout_at, created_at, created_by, updated_at, updated_by, staff_credentials:mst_staff_credentials(is_active, is_owner)")
       .eq("id", staffId)
       .maybeSingle<StaffMemberAdminRow>();
 

@@ -16,6 +16,9 @@ export type StaffMemberAdminRow = {
   role_id: string | null;
   access: string;
   status: "Online" | "Istirahat" | "Off";
+  online_status?: "Online" | "Istirahat" | "Off";
+  last_login_at: string | null;
+  last_logout_at: string | null;
   created_at: string | null;
   created_by: string | null;
   updated_at: string | null;
@@ -32,6 +35,8 @@ export type StaffListItem = {
   access: string;
   statusOnline: "Online" | "Istirahat" | "Off";
   statusAccount: "Aktif" | "Tidak Aktif";
+  loginTime: string | null;
+  logoutTime: string | null;
   isActive: boolean;
   isOwner: boolean;
   createdAt: string | null;
@@ -60,8 +65,10 @@ export function mapStaffMemberRow(row: StaffMemberAdminRow): StaffListItem {
     role: roleName,
     roleId: row.role_id,
     access: row.access || getLegacyAccessForRole(roleName),
-    statusOnline: row.status,
+    statusOnline: row.online_status ?? row.status,
     statusAccount: isActive ? "Aktif" : "Tidak Aktif",
+    loginTime: row.last_login_at,
+    logoutTime: row.last_logout_at,
     isActive,
     isOwner: credentials?.is_owner ?? false,
     createdAt: row.created_at,
