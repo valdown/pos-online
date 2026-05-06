@@ -5,20 +5,9 @@ import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip } from "recharts";
 import type { PopularItem } from "@/lib/mock-data";
 
 const chartColors = ["var(--coffee-500)", "var(--coffee-400)", "var(--coffee-700)", "var(--sand-300)", "var(--coffee-300)"];
-const samplePopularItems: PopularItem[] = [
-  { name: "Caramel Macchiato", orders: 124, share: 31 },
-  { name: "Beef Burger & Chips", orders: 96, share: 24 },
-  { name: "Bumi Latte", orders: 82, share: 20 },
-  { name: "Kapal Pesiar", orders: 58, share: 14 },
-  { name: "Croissant Almond", orders: 44, share: 11 },
-];
 
 function getVisiblePopularItems(data: PopularItem[]) {
-  const primaryItems = data.slice(0, 5);
-  const visibleItems = [
-    ...primaryItems,
-    ...samplePopularItems.filter((sampleItem) => primaryItems.every((item) => item.name !== sampleItem.name)).slice(0, Math.max(0, 5 - primaryItems.length)),
-  ].slice(0, 5);
+  const visibleItems = data.slice(0, 5);
 
   if (visibleItems.length === 0) {
     return visibleItems;
