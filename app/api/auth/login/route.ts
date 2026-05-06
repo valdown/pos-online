@@ -54,23 +54,11 @@ export async function POST(request: Request) {
   const { data, error } = await admin.from("mst_staff_members").select("id, name, role, role_id, access, email").eq("email", email).maybeSingle<StaffAccountRow>();
 
   if (error) {
-    return NextResponse.json(
-      {
-        error: isBootstrapOwnerLogin ? `Gagal membaca staff_members: ${error.message}` : "Email atau kata sandi tidak valid.",
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Login internal gagal. Coba lagi beberapa saat." }, { status: 500 });
   }
 
   if (!data) {
-    return NextResponse.json(
-      {
-        error: isBootstrapOwnerLogin
-          ? "Akun owner bootstrap tidak ditemukan di staff_members. Pastikan email owner@coffeebean.local ada di project Supabase yang dipakai prod."
-          : "Email atau kata sandi tidak valid.",
-      },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Email atau kata sandi tidak valid." }, { status: 401 });
   }
 
   const { data: credentials, error: credentialsError } = data
@@ -78,23 +66,11 @@ export async function POST(request: Request) {
     : { data: null, error: null };
 
   if (credentialsError) {
-    return NextResponse.json(
-      {
-        error: isBootstrapOwnerLogin ? `Gagal membaca staff_credentials: ${credentialsError.message}` : "Email atau kata sandi tidak valid.",
-      },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Login internal gagal. Coba lagi beberapa saat." }, { status: 500 });
   }
 
   if (!credentials) {
-    return NextResponse.json(
-      {
-        error: isBootstrapOwnerLogin
-          ? `Akun owner bootstrap ditemukan (${data.id}), tetapi credential tidak ditemukan di staff_credentials.`
-          : "Email atau kata sandi tidak valid.",
-      },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Email atau kata sandi tidak valid." }, { status: 401 });
   }
 
   if (!credentials.is_active) {
@@ -109,14 +85,7 @@ export async function POST(request: Request) {
   const passwordMatches = await compare(password, credentials.password_hash);
 
   if (!passwordMatches) {
-    return NextResponse.json(
-      {
-        error: isBootstrapOwnerLogin
-          ? "Password owner bootstrap tidak cocok dengan hash di staff_credentials."
-          : "Email atau kata sandi tidak valid.",
-      },
-      { status: 401 }
-    );
+    return NextResponse.json({ error: "Email atau kata sandi tidak valid." }, { status: 401 });
   }
 
   const sessionId = crypto.randomUUID();

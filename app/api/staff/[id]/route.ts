@@ -139,7 +139,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
     const { error: credentialError } = await supabase.from("mst_staff_credentials").update(credentialPatch).eq("staff_id", id);
 
     if (credentialError) {
-      return NextResponse.json({ error: credentialError.message || "Gagal memperbarui kredensial staf." }, { status: 500 });
+      return NextResponse.json({ error: "Gagal memperbarui kredensial staf." }, { status: 500 });
     }
 
     if (!parsed.data.isActive) {
@@ -158,7 +158,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ id
 
     return NextResponse.json({ staff: mapStaffMemberRow(memberRow) });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Gagal memperbarui staf." }, { status: 500 });
+    return NextResponse.json({ error: "Gagal memperbarui staf." }, { status: 500 });
   }
 }
 
@@ -186,7 +186,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
   const { error: credentialError } = await supabase.from("mst_staff_credentials").update({ is_active: false }).eq("staff_id", id);
 
   if (credentialError) {
-    return NextResponse.json({ error: credentialError.message || "Gagal menonaktifkan kredensial staf." }, { status: 500 });
+    return NextResponse.json({ error: "Gagal menonaktifkan kredensial staf." }, { status: 500 });
   }
 
   await Promise.all([

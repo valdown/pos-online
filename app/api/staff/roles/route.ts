@@ -30,7 +30,7 @@ export async function GET() {
   ]);
 
   if (roleError || permissionError) {
-    return NextResponse.json({ error: roleError?.message ?? permissionError?.message ?? "Gagal membaca master role." }, { status: 500 });
+    return NextResponse.json({ error: "Gagal membaca master role." }, { status: 500 });
   }
 
   return NextResponse.json({ roles: mapStaffRoleDataToOptions((roleRows ?? []) as StaffRoleRow[], (permissionRows ?? []) as StaffRolePermissionRow[]) });
@@ -56,7 +56,7 @@ export async function PUT(request: Request) {
   const { data: existingRoles, error: existingRoleError } = await supabase.from("mst_staff_roles").select("id, name");
 
   if (existingRoleError) {
-    return NextResponse.json({ error: existingRoleError.message || "Gagal membaca role yang ada." }, { status: 500 });
+    return NextResponse.json({ error: "Gagal membaca role yang ada." }, { status: 500 });
   }
 
   const removedRoleIds = (existingRoles ?? []).map((role) => role.id).filter((id) => !rows.some((row) => row.id === id));
@@ -72,7 +72,7 @@ export async function PUT(request: Request) {
   const { error: upsertError } = await supabase.from("mst_staff_roles").upsert(rows);
 
   if (upsertError) {
-    return NextResponse.json({ error: upsertError.message || "Gagal menyimpan role ke Supabase." }, { status: 500 });
+    return NextResponse.json({ error: "Gagal menyimpan role ke database." }, { status: 500 });
   }
 
   for (const row of rows) {
@@ -80,7 +80,7 @@ export async function PUT(request: Request) {
       const { error: permissionError } = await supabase.from("mst_staff_role_permissions").upsert(permissionRows);
 
     if (permissionError) {
-      return NextResponse.json({ error: permissionError.message || "Gagal menyiapkan permission role default." }, { status: 500 });
+      return NextResponse.json({ error: "Gagal menyiapkan permission role default." }, { status: 500 });
     }
   }
 
@@ -88,13 +88,13 @@ export async function PUT(request: Request) {
     const { error: deletePermissionError } = await supabase.from("mst_staff_role_permissions").delete().in("role_id", removedRoleIds);
 
     if (deletePermissionError) {
-      return NextResponse.json({ error: deletePermissionError.message || "Gagal menghapus permission role lama." }, { status: 500 });
+      return NextResponse.json({ error: "Gagal menghapus permission role lama." }, { status: 500 });
     }
 
     const { error: deleteRoleError } = await supabase.from("mst_staff_roles").delete().in("id", removedRoleIds);
 
     if (deleteRoleError) {
-      return NextResponse.json({ error: deleteRoleError.message || "Gagal menghapus role lama." }, { status: 500 });
+      return NextResponse.json({ error: "Gagal menghapus role lama." }, { status: 500 });
     }
   }
 

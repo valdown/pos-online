@@ -124,7 +124,7 @@ export async function POST(request: Request) {
 
     if (credentialError) {
       await supabase.from("mst_staff_members").delete().eq("id", staffId);
-      return NextResponse.json({ error: credentialError.message || "Gagal menyimpan kredensial staf." }, { status: 500 });
+      return NextResponse.json({ error: "Gagal menyimpan kredensial staf." }, { status: 500 });
     }
 
     const { data: memberRow } = await supabase
@@ -139,6 +139,6 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ staff: mapStaffMemberRow(memberRow) }, { status: 201 });
   } catch (error) {
-    return NextResponse.json({ error: error instanceof Error ? error.message : "Gagal menyimpan staf." }, { status: 500 });
+    return NextResponse.json({ error: "Gagal menyimpan staf." }, { status: 500 });
   }
 }

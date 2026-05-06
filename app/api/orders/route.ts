@@ -68,7 +68,7 @@ export async function POST(request: Request) {
     .single<{ id: string }>();
 
   if (orderError || !order) {
-    return NextResponse.json({ error: "Gagal menyimpan order ke Supabase. Jalankan schema SQL terlebih dahulu." }, { status: 500 });
+    return NextResponse.json({ error: "Gagal menyimpan order. Coba lagi beberapa saat." }, { status: 500 });
   }
 
   const { error: itemsError } = await supabase.from("trx_sales_order_items").insert(
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
   );
 
   if (itemsError) {
-    return NextResponse.json({ error: "Order utama tersimpan, tetapi item order gagal masuk. Periksa schema sales_order_items." }, { status: 500 });
+    return NextResponse.json({ error: "Order utama tersimpan, tetapi item order gagal diproses." }, { status: 500 });
   }
 
   return NextResponse.json({ orderNumber, createdAt });
