@@ -36,12 +36,14 @@ alter table public.mst_products drop constraint if exists mst_products_pkey;
 alter table public.mst_products drop constraint if exists products_pkey;
 alter table public.mst_products rename column id to legacy_id;
 alter table public.mst_products rename column id_uuid to id;
+alter table public.mst_products alter column legacy_id drop not null;
 alter table public.mst_products alter column id set default gen_random_uuid();
 alter table public.mst_products alter column id set not null;
 alter table public.mst_products add constraint mst_products_pkey primary key (id);
 
 alter table public.trx_sales_order_items rename column product_id to legacy_product_id;
 alter table public.trx_sales_order_items rename column product_id_uuid to product_id;
+alter table public.trx_sales_order_items alter column legacy_product_id drop not null;
 alter table public.trx_sales_order_items alter column product_id set not null;
 
 commit;
