@@ -25,6 +25,12 @@ type AppSettingsPaymentRow = {
   payment_methods: PaymentMethodSetting[] | null;
 };
 
+type CheckoutRpcRow = {
+  order_id: string;
+  order_number: string;
+  created_at: string;
+};
+
 export async function POST(request: Request) {
   const payload = (await request.json()) as OrderPayload;
   const supabase = createAdminSupabaseClient();
@@ -53,38 +59,54 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Metode pembayaran tidak aktif atau tidak dikenali." }, { status: 400 });
   }
 
-  const { data: order, error: orderError } = await supabase
-    .from("trx_sales_orders")
-    .insert({
-      order_number: orderNumber,
-      payment_method: payload.paymentMethod,
-      subtotal: payload.subtotal,
-      tax_amount: payload.tax,
-      total_amount: payload.total,
-      cashier_name: currentUser.name,
-      status: "paid",
-    })
-    .select("id")
-    .single<{ id: string }>();
+  if (!payload.items?.length) {
+    return NextResponse.json({ error: "Keranjang masih kosong." }, { status: 400 });
+  }
 
-  if (orderError || !order) {
+  if (payload.items.some((item) => !item.productId || item.quantity <= 0 || item.unitPrice < 0 || item.lineTotal < 0)) {
+    return NextResponse.json({ error: "Item checkout tidak valid." }, { status: 400 });
+  }
+
+  const duplicateIds = new Set<string>();
+  for (const item of payload.items) {
+    if (duplicateIds.has(item.productId)) {
+      return NextResponse.json({ error: "Keranjang berisi item duplikat. Muat ulang halaman kasir lalu coba lagi." }, { status: 400 });
+    }
+    duplicateIds.add(item.productId);
+  }
+
+  const { data: checkoutRows, error: checkoutError } = await supabase.rpc("process_checkout_order", {
+    p_payment_method: payload.paymentMethod,
+    p_subtotal: payload.subtotal,
+    p_tax: payload.tax,
+    p_total: payload.total,
+    p_cashier_name: currentUser.name,
+    p_items: payload.items,
+  });
+
+  if (checkoutError) {
+    const message = checkoutError.message ?? "";
+
+    if (message.includes("INSUFFICIENT_STOCK")) {
+      return NextResponse.json({ error: "Stok produk berubah atau tidak mencukupi. Cek stok terbaru lalu ulangi transaksi." }, { status: 409 });
+    }
+
+    if (message.includes("PRODUCT_NOT_FOUND") || message.includes("PRODUCT_UNAVAILABLE")) {
+      return NextResponse.json({ error: "Ada produk yang sudah tidak tersedia. Muat ulang halaman kasir lalu coba lagi." }, { status: 409 });
+    }
+
+    if (message.includes("EMPTY_CART") || message.includes("INVALID_QUANTITY")) {
+      return NextResponse.json({ error: "Item checkout tidak valid." }, { status: 400 });
+    }
+
     return NextResponse.json({ error: "Gagal menyimpan order. Coba lagi beberapa saat." }, { status: 500 });
   }
 
-  const { error: itemsError } = await supabase.from("trx_sales_order_items").insert(
-    payload.items.map((item) => ({
-      order_id: order.id,
-      product_id: item.productId,
-      product_name: item.productName,
-      unit_price: item.unitPrice,
-      quantity: item.quantity,
-      line_total: item.lineTotal,
-    }))
-  );
+  const checkout = ((checkoutRows ?? []) as CheckoutRpcRow[])[0];
 
-  if (itemsError) {
-    return NextResponse.json({ error: "Order utama tersimpan, tetapi item order gagal diproses." }, { status: 500 });
+  if (!checkout) {
+    return NextResponse.json({ error: "Gagal menyimpan order. Coba lagi beberapa saat." }, { status: 500 });
   }
 
-  return NextResponse.json({ orderNumber, createdAt });
+  return NextResponse.json({ orderNumber: checkout.order_number, createdAt: checkout.created_at ?? createdAt });
 }

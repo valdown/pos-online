@@ -13,6 +13,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { Product } from "@/lib/mock-data";
+import { getSupabaseUrl } from "@/lib/supabase/config";
+import { getProductImagePublicUrl } from "@/lib/supabase/product-images";
 import { productStatuses } from "@/lib/supabase/products";
 import { formatCurrency, formatNumber } from "@/lib/utils";
 
@@ -44,6 +46,8 @@ const catalogCellClass =
 
 const catalogNumericCellClass = `${catalogCellClass} text-right tabular-nums`;
 
+const supabaseUrl = getSupabaseUrl();
+
 function toFormValues(product: Product): ProductFormValues {
   return {
     name: product.name,
@@ -67,6 +71,7 @@ export function ProductCrudClient({ initialProducts }: { initialProducts: Produc
   const [isMounted, setIsMounted] = useState(false);
   const [selectedImageFile, setSelectedImageFile] = useState<File | null>(null);
   const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null);
+  const [imageLoadErrors, setImageLoadErrors] = useState<Record<string, boolean>>({});
 
   const title = editingProductId ? "Edit menu" : "Tambah menu baru";
   const description = editingProductId
@@ -281,12 +286,39 @@ export function ProductCrudClient({ initialProducts }: { initialProducts: Produc
                 </thead>
                 <tbody>
                   {sortedProducts.length ? (
-                    sortedProducts.map((product) => (
+                    sortedProducts.map((product) => {
+                      const productImageUrl = getProductImagePublicUrl(product.imagePath, supabaseUrl);
+                      const productImageKey = `${product.id}:${product.imagePath ?? "empty"}`;
+                      const showProductImage = Boolean(productImageUrl && !imageLoadErrors[productImageKey]);
+
+                      return (
                       <tr key={product.id}>
                         <td className={`${catalogCellClass} rounded-l-[calc(var(--radius-soft)-0.1rem)] border-l`}>
-                          <div className="space-y-1.5">
-                            <p className="font-semibold leading-6 text-[var(--ink)]">{product.name}</p>
-                            <p className="max-w-sm text-sm leading-6 text-[var(--muted)]">{product.description}</p>
+                          <div className="flex min-w-0 items-start gap-3.5">
+                            <div className="flex size-14 shrink-0 items-center justify-center overflow-hidden rounded-[1rem] border border-[rgba(228,183,133,0.24)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(249,242,234,0.9))] shadow-[inset_0_1px_0_rgba(255,255,255,0.75)]">
+                              {showProductImage ? (
+                                <img
+                                  src={productImageUrl ?? undefined}
+                                  alt={`Foto ${product.name}`}
+                                  className="h-full w-full object-cover"
+                                  onError={() => {
+                                    setImageLoadErrors((current) => {
+                                      if (current[productImageKey]) {
+                                        return current;
+                                      }
+
+                                      return { ...current, [productImageKey]: true };
+                                    });
+                                  }}
+                                />
+                              ) : (
+                                <ImageIcon className="size-4 text-[var(--muted)]" />
+                              )}
+                            </div>
+                            <div className="min-w-0 space-y-1.5">
+                              <p className="truncate font-semibold leading-6 text-[var(--ink)]">{product.name}</p>
+                              <p className="max-w-sm text-sm leading-6 text-[var(--muted)]">{product.description}</p>
+                            </div>
                           </div>
                         </td>
                         <td className={`${catalogCellClass} font-medium text-[var(--ink)] whitespace-nowrap`}>{product.category}</td>
@@ -328,7 +360,7 @@ export function ProductCrudClient({ initialProducts }: { initialProducts: Produc
                           </div>
                         </td>
                       </tr>
-                    ))
+                    )})
                   ) : (
                     <tr>
                       <td

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
+import { useRouter } from "next/navigation";
 import { CreditCard, Minus, Plus, ReceiptText, RotateCcw, Search, Wallet, X } from "lucide-react";
 import { toast } from "sonner";
 
@@ -84,6 +85,7 @@ export function PosClient({
   taxRate: number;
   paymentMethods: PaymentMethodSetting[];
 }) {
+  const router = useRouter();
   const [activeCategory, setActiveCategory] = useState<ProductCategory>("Semua");
   const [searchQuery, setSearchQuery] = useState("");
   const enabledPaymentMethods = useMemo(() => getEnabledPaymentMethods(paymentMethods), [paymentMethods]);
@@ -247,12 +249,14 @@ export function PosClient({
       toast.success(`Pembayaran ${activePaymentMethodLabel} berhasil diproses.`, {
         description: `Order ${payload.orderNumber} senilai ${formatCurrency(total)} tersimpan ke database dan keranjang direset.`,
       });
+      router.refresh();
       return true;
     } catch (error) {
       await stopLoading();
       toast.error("Checkout gagal diproses.", {
         description: error instanceof Error ? error.message : "Periksa konfigurasi Supabase dan schema tabel orders kamu.",
       });
+      router.refresh();
       return false;
     }
   };
