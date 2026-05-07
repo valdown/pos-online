@@ -244,6 +244,174 @@ create table if not exists public.trx_sales_order_items (
   line_total integer not null default 0
 );
 
+create or replace function public.process_checkout_order(
+  p_payment_method text,
+  p_subtotal integer,
+  p_tax integer,
+  p_total integer,
+  p_cashier_name text,
+  p_items jsonb
+)
+returns table(order_id uuid, order_number text, created_at timestamptz)
+language plpgsql
+as $$
+declare
+  v_order_id uuid;
+  v_order_number text := 'TRX-' || upper(substring(replace(gen_random_uuid()::text, '-', '') from 1 for 10));
+  v_created_at timestamptz := now();
+  v_product_id_type text;
+  v_missing_count integer;
+begin
+  create temporary table if not exists tmp_checkout_items (
+    product_id_text text,
+    product_name text,
+    unit_price integer,
+    quantity integer,
+    line_total integer
+  ) on commit drop;
+  truncate table tmp_checkout_items;
+
+  insert into tmp_checkout_items (product_id_text, product_name, unit_price, quantity, line_total)
+  select
+    x."productId",
+    x."productName",
+    x."unitPrice",
+    quantity integer,
+    x."lineTotal"
+  from jsonb_to_recordset(p_items) as x(
+    "productId" text,
+    "productName" text,
+    "unitPrice" integer,
+    quantity integer,
+    "lineTotal" integer
+  );
+
+  if not exists (select 1 from tmp_checkout_items) then
+    raise exception 'EMPTY_CART';
+  end if;
+
+  if exists (
+    select 1
+    from tmp_checkout_items
+    where product_id_text is null
+      or product_name is null
+      or unit_price is null
+      or line_total is null
+  ) then
+    raise exception 'INVALID_ITEM_PAYLOAD';
+  end if;
+
+  if exists (select 1 from tmp_checkout_items where quantity <= 0) then
+    raise exception 'INVALID_QUANTITY';
+  end if;
+
+  create temporary table if not exists tmp_checkout_items_agg (
+    product_id_text text primary key,
+    product_name text,
+    unit_price integer,
+    quantity integer,
+    line_total integer
+  ) on commit drop;
+  truncate table tmp_checkout_items_agg;
+
+  insert into tmp_checkout_items_agg (product_id_text, product_name, unit_price, quantity, line_total)
+  select
+    product_id_text,
+    max(product_name),
+    max(unit_price),
+    sum(quantity),
+    sum(line_total)
+  from tmp_checkout_items
+  group by product_id_text;
+
+  create temporary table if not exists tmp_locked_products (
+    product_id_text text primary key,
+    stock integer,
+    deleted_at timestamptz,
+    is_active boolean
+  ) on commit drop;
+  truncate table tmp_locked_products;
+
+  insert into tmp_locked_products (product_id_text, stock, deleted_at, is_active)
+  select
+    p.id::text,
+    p.stock,
+    p.deleted_at,
+    p.is_active
+  from public.mst_products p
+  join tmp_checkout_items_agg i on p.id::text = i.product_id_text
+  for update;
+
+  select count(*) into v_missing_count
+  from tmp_checkout_items_agg i
+  left join tmp_locked_products p using (product_id_text)
+  where p.product_id_text is null;
+
+  if v_missing_count > 0 then
+    raise exception 'PRODUCT_NOT_FOUND';
+  end if;
+
+  if exists (select 1 from tmp_locked_products where deleted_at is not null or is_active = false) then
+    raise exception 'PRODUCT_UNAVAILABLE';
+  end if;
+
+  if exists (
+    select 1
+    from tmp_locked_products p
+    join tmp_checkout_items_agg i using (product_id_text)
+    where p.stock < i.quantity
+  ) then
+    raise exception 'INSUFFICIENT_STOCK';
+  end if;
+
+  insert into public.trx_sales_orders (
+    order_number,
+    payment_method,
+    subtotal,
+    tax_amount,
+    total_amount,
+    cashier_name,
+    status,
+    created_at
+  )
+  values (
+    v_order_number,
+    p_payment_method,
+    p_subtotal,
+    p_tax,
+    p_total,
+    p_cashier_name,
+    'paid',
+    v_created_at
+  )
+  returning id into v_order_id;
+
+  select data_type into v_product_id_type
+  from information_schema.columns
+  where table_schema = 'public'
+    and table_name = 'trx_sales_order_items'
+    and column_name = 'product_id';
+
+  if v_product_id_type = 'uuid' then
+    insert into public.trx_sales_order_items (order_id, product_id, product_name, unit_price, quantity, line_total)
+    select v_order_id, product_id_text::uuid, product_name, unit_price, quantity, line_total
+    from tmp_checkout_items_agg;
+  else
+    insert into public.trx_sales_order_items (order_id, product_id, product_name, unit_price, quantity, line_total)
+    select v_order_id, product_id_text, product_name, unit_price, quantity, line_total
+    from tmp_checkout_items_agg;
+  end if;
+
+  update public.mst_products p
+  set stock = p.stock - i.quantity
+  from tmp_checkout_items_agg i
+  where p.id::text = i.product_id_text;
+
+  return query
+  select v_order_id, v_order_number, v_created_at;
+end;
+$$;
+
 alter table public.mst_dashboard_stats enable row level security;
 alter table public.mst_revenue_points enable row level security;
 alter table public.mst_popular_items enable row level security;
