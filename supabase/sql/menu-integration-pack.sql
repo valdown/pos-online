@@ -4,6 +4,13 @@
 -- This file is safe only after the base tables already exist.
 
 alter table public.trx_sales_orders add column if not exists cashier_name text;
+alter table public.trx_sales_orders add column if not exists kitchen_status text;
+alter table public.trx_sales_orders add column if not exists kitchen_started_at timestamptz;
+alter table public.trx_sales_orders add column if not exists kitchen_completed_at timestamptz;
+alter table public.trx_sales_orders add column if not exists kitchen_updated_by text references public.mst_staff_members (id) on delete set null;
+alter table public.trx_sales_orders add column if not exists kitchen_updated_at timestamptz;
+alter table public.trx_sales_orders drop constraint if exists trx_sales_orders_kitchen_status_check;
+alter table public.trx_sales_orders add constraint trx_sales_orders_kitchen_status_check check (kitchen_status in ('queue', 'in_progress', 'done'));
 create table if not exists public.mst_staff_roles (
   id text primary key,
   name text not null unique,
@@ -89,6 +96,7 @@ insert into public.mst_staff_role_permissions (role_id, menu_key, access_level)
 values
   ('owner', 'dashboard', 'manage'),
   ('owner', 'kasir', 'manage'),
+  ('owner', 'dapur', 'manage'),
   ('owner', 'invoice-kasir', 'manage'),
   ('owner', 'produk', 'manage'),
   ('owner', 'staf', 'manage'),
@@ -96,6 +104,7 @@ values
   ('owner', 'pengaturan', 'manage'),
   ('supervisor', 'dashboard', 'read'),
   ('supervisor', 'kasir', 'create'),
+  ('supervisor', 'dapur', 'create'),
   ('supervisor', 'invoice-kasir', 'read'),
   ('supervisor', 'produk', 'create'),
   ('supervisor', 'staf', 'hidden'),
@@ -103,6 +112,7 @@ values
   ('supervisor', 'pengaturan', 'hidden'),
   ('kasir', 'dashboard', 'hidden'),
   ('kasir', 'kasir', 'create'),
+  ('kasir', 'dapur', 'hidden'),
   ('kasir', 'invoice-kasir', 'hidden'),
   ('kasir', 'produk', 'hidden'),
   ('kasir', 'staf', 'hidden'),
@@ -110,6 +120,7 @@ values
   ('kasir', 'pengaturan', 'hidden'),
   ('barista', 'dashboard', 'hidden'),
   ('barista', 'kasir', 'create'),
+  ('barista', 'dapur', 'create'),
   ('barista', 'invoice-kasir', 'hidden'),
   ('barista', 'produk', 'hidden'),
   ('barista', 'staf', 'hidden'),
@@ -215,30 +226,29 @@ declare
   v_order_number text := 'TRX-' || upper(substring(replace(gen_random_uuid()::text, '-', '') from 1 for 10));
   v_created_at timestamptz := now();
   v_product_id_type text;
+  v_order_subtotal integer := 0;
+  v_tax_rate integer := 0;
+  v_order_tax integer := 0;
+  v_order_total integer := 0;
   v_missing_count integer;
 begin
+  if p_items is null or jsonb_typeof(p_items) <> 'array' then
+    raise exception 'INVALID_ITEM_PAYLOAD';
+  end if;
+
   create temporary table if not exists tmp_checkout_items (
     product_id_text text,
-    product_name text,
-    unit_price integer,
-    quantity integer,
-    line_total integer
+    quantity integer
   ) on commit drop;
   truncate table tmp_checkout_items;
 
-  insert into tmp_checkout_items (product_id_text, product_name, unit_price, quantity, line_total)
+  insert into tmp_checkout_items (product_id_text, quantity)
   select
     x."productId",
-    x."productName",
-    x."unitPrice",
-    quantity integer,
-    x."lineTotal"
+    x.quantity
   from jsonb_to_recordset(p_items) as x(
     "productId" text,
-    "productName" text,
-    "unitPrice" integer,
-    quantity integer,
-    "lineTotal" integer
+    quantity integer
   );
 
   if not exists (select 1 from tmp_checkout_items) then
@@ -249,9 +259,7 @@ begin
     select 1
     from tmp_checkout_items
     where product_id_text is null
-      or product_name is null
-      or unit_price is null
-      or line_total is null
+      or quantity is null
   ) then
     raise exception 'INVALID_ITEM_PAYLOAD';
   end if;
@@ -262,34 +270,34 @@ begin
 
   create temporary table if not exists tmp_checkout_items_agg (
     product_id_text text primary key,
-    product_name text,
-    unit_price integer,
-    quantity integer,
-    line_total integer
+    quantity integer
   ) on commit drop;
   truncate table tmp_checkout_items_agg;
 
-  insert into tmp_checkout_items_agg (product_id_text, product_name, unit_price, quantity, line_total)
+  insert into tmp_checkout_items_agg (product_id_text, quantity)
   select
     product_id_text,
-    max(product_name),
-    max(unit_price),
-    sum(quantity),
-    sum(line_total)
+    sum(quantity)
   from tmp_checkout_items
   group by product_id_text;
 
   create temporary table if not exists tmp_locked_products (
     product_id_text text primary key,
+    product_id_uuid uuid,
+    product_name text,
+    unit_price integer,
     stock integer,
     deleted_at timestamptz,
     is_active boolean
   ) on commit drop;
   truncate table tmp_locked_products;
 
-  insert into tmp_locked_products (product_id_text, stock, deleted_at, is_active)
+  insert into tmp_locked_products (product_id_text, product_id_uuid, product_name, unit_price, stock, deleted_at, is_active)
   select
     p.id::text,
+    p.id,
+    p.name,
+    p.price,
     p.stock,
     p.deleted_at,
     p.is_active
@@ -319,6 +327,18 @@ begin
     raise exception 'INSUFFICIENT_STOCK';
   end if;
 
+  select coalesce(sum(p.unit_price * i.quantity), 0) into v_order_subtotal
+  from tmp_locked_products p
+  join tmp_checkout_items_agg i using (product_id_text);
+
+  select coalesce(tax_rate, 0) into v_tax_rate
+  from public.mst_app_settings
+  where id = 'default'
+  limit 1;
+
+  v_order_tax := round(v_order_subtotal * (v_tax_rate::numeric / 100))::integer;
+  v_order_total := v_order_subtotal + v_order_tax;
+
   insert into public.trx_sales_orders (
     order_number,
     payment_method,
@@ -327,16 +347,20 @@ begin
     total_amount,
     cashier_name,
     status,
+    kitchen_status,
+    kitchen_updated_at,
     created_at
   )
   values (
     v_order_number,
     p_payment_method,
-    p_subtotal,
-    p_tax,
-    p_total,
+    v_order_subtotal,
+    v_order_tax,
+    v_order_total,
     p_cashier_name,
     'paid',
+    'queue',
+    v_created_at,
     v_created_at
   )
   returning id into v_order_id;
@@ -349,12 +373,14 @@ begin
 
   if v_product_id_type = 'uuid' then
     insert into public.trx_sales_order_items (order_id, product_id, product_name, unit_price, quantity, line_total)
-    select v_order_id, product_id_text::uuid, product_name, unit_price, quantity, line_total
-    from tmp_checkout_items_agg;
+    select v_order_id, p.product_id_uuid, p.product_name, p.unit_price, i.quantity, p.unit_price * i.quantity
+    from tmp_checkout_items_agg i
+    join tmp_locked_products p using (product_id_text);
   else
     insert into public.trx_sales_order_items (order_id, product_id, product_name, unit_price, quantity, line_total)
-    select v_order_id, product_id_text, product_name, unit_price, quantity, line_total
-    from tmp_checkout_items_agg;
+    select v_order_id, p.product_id_text, p.product_name, p.unit_price, i.quantity, p.unit_price * i.quantity
+    from tmp_checkout_items_agg i
+    join tmp_locked_products p using (product_id_text);
   end if;
 
   update public.mst_products p

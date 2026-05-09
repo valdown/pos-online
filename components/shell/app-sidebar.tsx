@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import * as Avatar from "@radix-ui/react-avatar";
 import {
   BellRing,
+  CookingPot,
   FileText,
   LayoutDashboard,
   LogOut,
@@ -28,6 +29,7 @@ import { cn } from "@/lib/utils";
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, menuKey: "dashboard" },
   { href: "/kasir", label: "POS Kasir", icon: ReceiptText, menuKey: "kasir" },
+  { href: "/dapur", label: "Board Dapur", icon: CookingPot, menuKey: "dapur" },
   { href: "/invoice-kasir", label: "Invoice Kasir", icon: FileText, menuKey: "invoice-kasir" },
   { href: "/produk", label: "Produk", icon: Package2, menuKey: "produk" },
   { href: "/staf", label: "Staf", icon: Users, menuKey: "staf" },

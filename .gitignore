@@ -9,6 +9,7 @@ yarn-error.log*
 .env.local
 .env.*.local
 SYSTEM_MAP.md
+SYSTEM_MAP_BY_KIRO.md
 .playwright-mcp/
 kasir-cards-after-fix.png
 tsconfig.tsbuildinfo

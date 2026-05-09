@@ -11,13 +11,14 @@ export const MENU_ACCESS_LEVEL_LABELS: Record<MenuAccessLevel, string> = {
   manage: "Bisa Semua (Edit/Hapus)",
 };
 
-export const STAFF_MENU_KEYS = ["dashboard", "kasir", "invoice-kasir", "produk", "staf", "notifikasi", "pengaturan"] as const;
+export const STAFF_MENU_KEYS = ["dashboard", "kasir", "dapur", "invoice-kasir", "produk", "staf", "notifikasi", "pengaturan"] as const;
 
 export type StaffMenuKey = (typeof STAFF_MENU_KEYS)[number];
 
 export const STAFF_MENU_LABELS: Record<StaffMenuKey, string> = {
   dashboard: "Dashboard",
   kasir: "Pos",
+  dapur: "Dapur",
   "invoice-kasir": "Invoice Kasir",
   produk: "Menu",
   staf: "User",
@@ -30,7 +31,7 @@ export function isMenuAccessLevel(value: unknown): value is MenuAccessLevel {
 }
 
 export function isStaffMenuKey(value: unknown): value is StaffMenuKey {
-  return value === "dashboard" || value === "kasir" || value === "invoice-kasir" || value === "produk" || value === "staf" || value === "notifikasi" || value === "pengaturan";
+  return value === "dashboard" || value === "kasir" || value === "dapur" || value === "invoice-kasir" || value === "produk" || value === "staf" || value === "notifikasi" || value === "pengaturan";
 }
 
 export function getLegacyAccessForRole(roleName: string): "Penuh" | "Operasional" | "Kasir" {
@@ -64,6 +65,7 @@ export function buildDefaultRolePermissions(roleName: string): Record<StaffMenuK
     return {
       dashboard: "manage",
       kasir: "manage",
+      dapur: "manage",
       "invoice-kasir": "manage",
       produk: "manage",
       staf: "manage",
@@ -76,6 +78,7 @@ export function buildDefaultRolePermissions(roleName: string): Record<StaffMenuK
     return {
       dashboard: "read",
       kasir: "create",
+      dapur: "create",
       "invoice-kasir": "read",
       produk: "create",
       staf: "hidden",
@@ -88,6 +91,7 @@ export function buildDefaultRolePermissions(roleName: string): Record<StaffMenuK
     return {
       dashboard: "hidden",
       kasir: "create",
+      dapur: "create",
       "invoice-kasir": "hidden",
       produk: "hidden",
       staf: "hidden",
@@ -99,6 +103,7 @@ export function buildDefaultRolePermissions(roleName: string): Record<StaffMenuK
   return {
     dashboard: "hidden",
     kasir: "create",
+    dapur: "hidden",
     "invoice-kasir": "hidden",
     produk: "hidden",
     staf: "hidden",

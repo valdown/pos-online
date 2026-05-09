@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { z } from "zod";
 
 import { APP_SESSION_COOKIE } from "@/lib/auth";
 import { hasMenuAccess } from "@/lib/internal-permissions";
@@ -7,19 +8,22 @@ import { resolveInternalSessionUser } from "@/lib/internal-auth";
 import { getEnabledPaymentMethods, normalizePaymentMethods, type PaymentMethodId, type PaymentMethodSetting } from "@/lib/payment-methods";
 import { createAdminSupabaseClient } from "@/lib/supabase/admin";
 
-type OrderPayload = {
-  paymentMethod: string;
-  subtotal: number;
-  tax: number;
-  total: number;
-  items: Array<{
-    productId: string;
-    productName: string;
-    unitPrice: number;
-    quantity: number;
-    lineTotal: number;
-  }>;
-};
+const orderItemSchema = z.object({
+  productId: z.string().trim().min(1, "Produk checkout tidak valid."),
+  productName: z.string().trim().optional(),
+  unitPrice: z.number().finite().optional(),
+  quantity: z.number().int().positive("Quantity produk minimal 1."),
+  lineTotal: z.number().finite().optional(),
+  note: z.string().trim().optional(),
+});
+
+const orderPayloadSchema = z.object({
+  paymentMethod: z.string().trim().min(1, "Metode pembayaran wajib dipilih."),
+  subtotal: z.number().finite().nonnegative().optional(),
+  tax: z.number().finite().nonnegative().optional(),
+  total: z.number().finite().nonnegative().optional(),
+  items: z.array(orderItemSchema).min(1, "Keranjang masih kosong."),
+});
 
 type AppSettingsPaymentRow = {
   payment_methods: PaymentMethodSetting[] | null;
@@ -32,9 +36,15 @@ type CheckoutRpcRow = {
 };
 
 export async function POST(request: Request) {
-  const payload = (await request.json()) as OrderPayload;
+  const rawPayload = (await request.json().catch(() => null)) as unknown;
+  const parsedPayload = orderPayloadSchema.safeParse(rawPayload);
+
+  if (!parsedPayload.success) {
+    return NextResponse.json({ error: parsedPayload.error.issues[0]?.message ?? "Payload checkout tidak valid." }, { status: 400 });
+  }
+
+  const payload = parsedPayload.data;
   const supabase = createAdminSupabaseClient();
-  const orderNumber = `TRX-${Date.now()}`;
   const createdAt = new Date().toISOString();
 
   if (!supabase) {
@@ -59,14 +69,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Metode pembayaran tidak aktif atau tidak dikenali." }, { status: 400 });
   }
 
-  if (!payload.items?.length) {
-    return NextResponse.json({ error: "Keranjang masih kosong." }, { status: 400 });
-  }
-
-  if (payload.items.some((item) => !item.productId || item.quantity <= 0 || item.unitPrice < 0 || item.lineTotal < 0)) {
-    return NextResponse.json({ error: "Item checkout tidak valid." }, { status: 400 });
-  }
-
   const duplicateIds = new Set<string>();
   for (const item of payload.items) {
     if (duplicateIds.has(item.productId)) {
@@ -77,9 +79,9 @@ export async function POST(request: Request) {
 
   const { data: checkoutRows, error: checkoutError } = await supabase.rpc("process_checkout_order", {
     p_payment_method: payload.paymentMethod,
-    p_subtotal: payload.subtotal,
-    p_tax: payload.tax,
-    p_total: payload.total,
+    p_subtotal: Math.round(payload.subtotal ?? 0),
+    p_tax: Math.round(payload.tax ?? 0),
+    p_total: Math.round(payload.total ?? 0),
     p_cashier_name: currentUser.name,
     p_items: payload.items,
   });
@@ -95,7 +97,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Ada produk yang sudah tidak tersedia. Muat ulang halaman kasir lalu coba lagi." }, { status: 409 });
     }
 
-    if (message.includes("EMPTY_CART") || message.includes("INVALID_QUANTITY")) {
+    if (message.includes("EMPTY_CART") || message.includes("INVALID_QUANTITY") || message.includes("INVALID_ITEM_PAYLOAD")) {
       return NextResponse.json({ error: "Item checkout tidak valid." }, { status: 400 });
     }
 

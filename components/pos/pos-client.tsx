@@ -18,7 +18,7 @@ import { getSupabaseUrl } from "@/lib/supabase/config";
 import { getProductImagePublicUrl } from "@/lib/supabase/product-images";
 import { cn, formatCurrency } from "@/lib/utils";
 
-type CartItem = Product & { quantity: number };
+type CartItem = Product & { quantity: number; note: string };
 
 type ProductVisual = {
   imageUrl: string;
@@ -169,7 +169,7 @@ export function PosClient({
         return current.map((item) => (item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
       }
 
-      return [...current, { ...product, quantity: 1 }];
+      return [...current, { ...product, quantity: 1, note: "" }];
     });
   };
 
@@ -194,6 +194,10 @@ export function PosClient({
         .map((item) => (item.id === productId ? { ...item, quantity: nextQuantity } : item))
         .filter((item) => item.quantity > 0);
     });
+  };
+
+  const updateNote = (productId: string, note: string) => {
+    setCart((current) => current.map((item) => (item.id === productId ? { ...item, note } : item)));
   };
 
   const resetCart = () => setCart([]);
@@ -227,6 +231,7 @@ export function PosClient({
             unitPrice: item.price,
             quantity: item.quantity,
             lineTotal: item.price * item.quantity,
+            note: item.note || undefined,
           })),
         }),
       });
@@ -408,33 +413,42 @@ export function PosClient({
                 <div
                   key={item.id}
                   data-testid={`cart-item-${item.id}`}
-                  className="flex items-center justify-between gap-3 rounded-[calc(var(--radius-soft)-0.1rem)] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(251,244,236,0.84))] px-3.5 py-3 shadow-[0_14px_24px_rgba(82,49,29,0.06),inset_0_1px_0_rgba(255,255,255,0.74)]"
+                  className="space-y-2 rounded-[calc(var(--radius-soft)-0.1rem)] border border-[var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(251,244,236,0.84))] px-3.5 py-3 shadow-[0_14px_24px_rgba(82,49,29,0.06),inset_0_1px_0_rgba(255,255,255,0.74)]"
                 >
-                  <div className="min-w-0 space-y-1 pr-2">
-                    <p className="truncate text-sm font-semibold text-[var(--ink)]">{item.name}</p>
-                    <p className="text-sm font-semibold text-[var(--coffee-600)]">{formatCurrency(item.price)}</p>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="min-w-0 space-y-1 pr-2">
+                      <p className="truncate text-sm font-semibold text-[var(--ink)]">{item.name}</p>
+                      <p className="text-sm font-semibold text-[var(--coffee-600)]">{formatCurrency(item.price)}</p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[rgba(255,255,255,0.76)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
+                      <button
+                        data-testid={`cart-decrease-${item.id}`}
+                        type="button"
+                        onClick={() => updateQuantity(item.id, -1)}
+                        className="flex size-7 items-center justify-center rounded-full bg-white/92 text-[var(--muted)] shadow-[0_8px_18px_rgba(82,49,29,0.06)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--coffee-700)]"
+                        aria-label={`Kurangi jumlah ${item.name}`}
+                      >
+                        <Minus className="size-3.5" />
+                      </button>
+                      <span className="min-w-6 text-center text-sm font-semibold text-[var(--ink)]">{item.quantity}</span>
+                      <button
+                        data-testid={`cart-increase-${item.id}`}
+                        type="button"
+                        onClick={() => updateQuantity(item.id, 1)}
+                        className="flex size-7 items-center justify-center rounded-full bg-white/92 text-[var(--muted)] shadow-[0_8px_18px_rgba(82,49,29,0.06)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--coffee-700)]"
+                        aria-label={`Tambah jumlah ${item.name}`}
+                      >
+                        <Plus className="size-3.5" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex shrink-0 items-center gap-1.5 rounded-full border border-[var(--line)] bg-[rgba(255,255,255,0.76)] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)]">
-                    <button
-                      data-testid={`cart-decrease-${item.id}`}
-                      type="button"
-                      onClick={() => updateQuantity(item.id, -1)}
-                      className="flex size-7 items-center justify-center rounded-full bg-white/92 text-[var(--muted)] shadow-[0_8px_18px_rgba(82,49,29,0.06)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--coffee-700)]"
-                      aria-label={`Kurangi jumlah ${item.name}`}
-                    >
-                      <Minus className="size-3.5" />
-                    </button>
-                    <span className="min-w-6 text-center text-sm font-semibold text-[var(--ink)]">{item.quantity}</span>
-                    <button
-                      data-testid={`cart-increase-${item.id}`}
-                      type="button"
-                      onClick={() => updateQuantity(item.id, 1)}
-                      className="flex size-7 items-center justify-center rounded-full bg-white/92 text-[var(--muted)] shadow-[0_8px_18px_rgba(82,49,29,0.06)] transition hover:bg-[var(--surface-soft)] hover:text-[var(--coffee-700)]"
-                      aria-label={`Tambah jumlah ${item.name}`}
-                    >
-                      <Plus className="size-3.5" />
-                    </button>
-                  </div>
+                  <input
+                    type="text"
+                    placeholder="Catatan (opsional)"
+                    value={item.note}
+                    onChange={(e) => updateNote(item.id, e.target.value)}
+                    className="w-full rounded-lg border border-[var(--line)] bg-white/80 px-3 py-1.5 text-xs text-[var(--ink)] placeholder:text-[var(--muted)] focus:outline-none focus:ring-1 focus:ring-[var(--coffee-500)]"
+                  />
                 </div>
               ))
             ) : (

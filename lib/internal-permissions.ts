@@ -32,6 +32,7 @@ export function hasMenuAccess(user: Pick<InternalPermissionUser, "menuPermission
 export function resolveMenuKeyFromPath(pathname: string): StaffMenuKey | null {
   if (pathname === "/dashboard") return "dashboard";
   if (pathname === "/kasir") return "kasir";
+  if (pathname === "/dapur") return "dapur";
   if (pathname === "/invoice-kasir") return "invoice-kasir";
   if (pathname === "/produk") return "produk";
   if (pathname === "/staf") return "staf";
@@ -46,6 +47,8 @@ export function getMenuHref(menuKey: StaffMenuKey) {
       return "/dashboard";
     case "kasir":
       return "/kasir";
+    case "dapur":
+      return "/dapur";
     case "invoice-kasir":
       return "/invoice-kasir";
     case "produk":
@@ -60,7 +63,7 @@ export function getMenuHref(menuKey: StaffMenuKey) {
 }
 
 export function getFirstAccessibleMenuHref(user: Pick<InternalPermissionUser, "menuPermissions" | "isOwner">) {
-  const orderedMenus: StaffMenuKey[] = ["dashboard", "kasir", "invoice-kasir", "produk", "staf", "notifikasi", "pengaturan"];
+  const orderedMenus: StaffMenuKey[] = ["dashboard", "kasir", "dapur", "invoice-kasir", "produk", "staf", "notifikasi", "pengaturan"];
   const nextMenu = orderedMenus.find((menuKey) => hasMenuAccess(user, menuKey, "read"));
   return getMenuHref(nextMenu ?? "dashboard");
 }

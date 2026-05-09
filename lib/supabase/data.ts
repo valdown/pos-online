@@ -55,8 +55,43 @@ type SalesOrderItemSummaryRow = {
   quantity: number;
 };
 
+type KitchenStatus = "queue" | "in_progress" | "done";
+
+type KitchenOrderItemRow = {
+  product_name: string;
+  quantity: number;
+  notes: string | null;
+};
+
+type KitchenOrderRow = {
+  id: string;
+  order_number: string;
+  payment_method: string;
+  total_amount: number;
+  cashier_name: string | null;
+  created_at: string;
+  kitchen_status: KitchenStatus | null;
+  kitchen_started_at: string | null;
+  kitchen_completed_at: string | null;
+  sales_order_items: KitchenOrderItemRow[] | null;
+};
+
 export type DashboardOrderRow = SalesOrderSummaryRow;
 export type DashboardOrderItemRow = SalesOrderItemSummaryRow;
+export type KitchenBoardItem = KitchenOrderItemRow;
+export type KitchenBoardOrder = {
+  id: string;
+  orderNumber: string;
+  paymentMethod: string;
+  totalAmount: number;
+  cashierName: string;
+  createdAt: string;
+  kitchenStatus: KitchenStatus;
+  kitchenStartedAt: string | null;
+  kitchenCompletedAt: string | null;
+  items: KitchenBoardItem[];
+  totalItems: number;
+};
 
 function startOfDay(date: Date) {
   const copy = new Date(date);
@@ -257,6 +292,48 @@ export const getDashboardOverviewData = cache(async () => {
     orders: (orderRows ?? []) as DashboardOrderRow[],
     items: (itemRows ?? []) as DashboardOrderItemRow[],
   };
+});
+
+export const getKitchenBoardData = cache(async () => {
+  const supabase = createAdminSupabaseClient();
+
+  if (!supabase) {
+    return [] as KitchenBoardOrder[];
+  }
+
+  const { data, error } = await supabase
+    .from("trx_sales_orders")
+    .select(
+      "id, order_number, payment_method, total_amount, cashier_name, created_at, kitchen_status, kitchen_started_at, kitchen_completed_at, sales_order_items:trx_sales_order_items(product_name, quantity, notes)"
+    )
+    .eq("status", "paid")
+    .not("kitchen_status", "is", null)
+    .order("created_at", { ascending: true })
+    .limit(100);
+
+  if (error || !data) {
+    return [] as KitchenBoardOrder[];
+  }
+
+  return (data as KitchenOrderRow[])
+    .filter((row): row is KitchenOrderRow & { kitchen_status: KitchenStatus } => row.kitchen_status === "queue" || row.kitchen_status === "in_progress" || row.kitchen_status === "done")
+    .map((row) => {
+      const items = row.sales_order_items ?? [];
+
+      return {
+        id: row.id,
+        orderNumber: row.order_number,
+        paymentMethod: row.payment_method,
+        totalAmount: row.total_amount,
+        cashierName: row.cashier_name ?? "Kasir Online",
+        createdAt: row.created_at,
+        kitchenStatus: row.kitchen_status,
+        kitchenStartedAt: row.kitchen_started_at,
+        kitchenCompletedAt: row.kitchen_completed_at,
+        items,
+        totalItems: items.reduce((sum, item) => sum + item.quantity, 0),
+      } satisfies KitchenBoardOrder;
+    });
 });
 
 async function selectRows<T>(table: string, fallback: T[], orderBy = "sort_order") {
