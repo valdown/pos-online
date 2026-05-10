@@ -28,13 +28,13 @@ import { cn } from "@/lib/utils";
 
 const links = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard, menuKey: "dashboard" },
-  { href: "/kasir", label: "POS Kasir", icon: ReceiptText, menuKey: "kasir" },
-  { href: "/dapur", label: "Board Dapur", icon: CookingPot, menuKey: "dapur" },
-  { href: "/invoice-kasir", label: "Invoice Kasir", icon: FileText, menuKey: "invoice-kasir" },
-  { href: "/produk", label: "Produk", icon: Package2, menuKey: "produk" },
-  { href: "/staf", label: "Staf", icon: Users, menuKey: "staf" },
-  { href: "/notifikasi", label: "Notifikasi", icon: BellRing, menuKey: "notifikasi" },
-  { href: "/pengaturan", label: "Pengaturan", icon: Settings, menuKey: "pengaturan" },
+  { href: "/kasir", label: "Kasir", icon: ReceiptText, menuKey: "kasir" },
+  { href: "/dapur", label: "Kitchen", icon: CookingPot, menuKey: "dapur" },
+  { href: "/invoice-kasir", label: "Invoice Cashier", icon: FileText, menuKey: "invoice-kasir" },
+  { href: "/produk", label: "List Products", icon: Package2, menuKey: "produk" },
+  { href: "/staf", label: "List Staff", icon: Users, menuKey: "staf" },
+  { href: "/notifikasi", label: "Notifications", icon: BellRing, menuKey: "notifikasi" },
+  { href: "/pengaturan", label: "Settings", icon: Settings, menuKey: "pengaturan" },
 ] as const;
 
 export function AppSidebar({ currentUser }: { currentUser: AppShellUser }) {
@@ -55,19 +55,19 @@ export function AppSidebar({ currentUser }: { currentUser: AppShellUser }) {
   };
 
   return (
-    <aside className="flex w-full flex-col gap-5 rounded-[calc(var(--radius-panel)+0.25rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(252,246,240,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] md:gap-6 md:p-5 xl:sticky xl:top-0 xl:min-h-[calc(100svh-2.5rem)] xl:w-[304px] xl:shrink-0 xl:self-start xl:gap-4 xl:overflow-hidden xl:p-4">
+    <aside className="flex w-full flex-col gap-5 rounded-[calc(var(--radius-panel)+0.25rem)] bg-[linear-gradient(180deg,rgba(255,255,255,0.94),rgba(252,246,240,0.92))] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.75)] md:gap-6 md:p-5 xl:sticky xl:top-[0.5rem] xl:max-h-[calc(100svh-1rem)] xl:w-[304px] xl:shrink-0 xl:gap-4 xl:overflow-y-auto xl:p-4">
       <div className="space-y-5 xl:space-y-3">
         <div className="flex items-center gap-4 rounded-[var(--radius-soft)] bg-[rgba(255,255,255,0.76)] p-3 md:p-4 xl:gap-3 xl:p-2.5">
           <div className="flex size-14 items-center justify-center rounded-[1.35rem] bg-[linear-gradient(135deg,var(--coffee-500),var(--coffee-700))] text-white shadow-[0_14px_26px_rgba(122,75,44,0.22)] xl:size-11 xl:rounded-[1.05rem]">
             <Store className="size-6 xl:size-5" />
           </div>
           <div className="space-y-1">
-            <p className="font-display text-2xl leading-none text-[var(--coffee-900)] xl:text-[1.5rem]">Coffee Bean</p>
-            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)] xl:text-[11px] xl:tracking-[0.22em]">POS internal suite</p>
+            <p className="font-display text-2xl leading-none text-[var(--coffee-900)] xl:text-[1.5rem]">Valyons Coffee</p>
+            <p className="text-xs uppercase tracking-[0.24em] text-[var(--muted)] xl:text-[11px] xl:tracking-[0.22em]">Internal POS</p>
           </div>
         </div>
 
-        <div className="rounded-[var(--radius-soft)] bg-[linear-gradient(135deg,rgba(255,250,246,0.92),rgba(244,230,215,0.82))] p-4 md:p-5 xl:p-3.5">
+        {/* <div className="rounded-[var(--radius-soft)] bg-[linear-gradient(135deg,rgba(255,250,246,0.92),rgba(244,230,215,0.82))] p-4 md:p-5 xl:p-3.5">
           <Badge variant="accent" className="w-fit xl:px-2.5 xl:py-0.5 xl:text-[11px] xl:tracking-[0.14em]">Kasir Aktif</Badge>
           <div className="mt-4 flex items-end justify-between gap-3 xl:mt-2.5 xl:gap-2.5">
             <div className="space-y-1 xl:space-y-0.5">
@@ -78,12 +78,12 @@ export function AppSidebar({ currentUser }: { currentUser: AppShellUser }) {
               <Sparkles className="size-4 xl:size-3.5" />
             </div>
           </div>
-        </div>
+        </div> */}
       </div>
 
       <div className="space-y-5 md:space-y-6 xl:flex xl:min-h-0 xl:flex-1 xl:flex-col xl:justify-between xl:space-y-4">
         <div className="space-y-4 xl:space-y-2.5">
-          <p className="px-3 text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)] xl:px-2.5 xl:text-[11px] xl:tracking-[0.24em]">Menu Utama</p>
+          <p className="px-3 text-xs font-semibold uppercase tracking-[0.28em] text-[var(--muted)] xl:px-2.5 xl:text-[11px] xl:tracking-[0.24em]">Main Menu</p>
           <nav className="space-y-2 xl:space-y-1">
             {visibleLinks.map(({ href, label, icon: Icon }) => {
               const active = pathname === href;
